@@ -12,7 +12,7 @@ type platformResponse struct {
 }
 
 func PlatformById(id string) (*Platform, *Error) {
-	request := request{"GET", "/platforms/" + id, nil, nil}
+	request := request{"GET", "/platforms/" + id, nil, nil, nil}
 	result := &platformResponse{}
 
 	err := httpClient.do(request, result)
@@ -34,7 +34,7 @@ type PlatformCollection struct {
 }
 
 func Platforms(s *Sorting, c *Cursor) (*PlatformCollection, *Error) {
-	return fetchPlatforms(request{"GET", "/platforms", s, c})
+	return fetchPlatforms(request{"GET", "/platforms", nil, s, c})
 }
 
 func (self *PlatformCollection) NextPage() (*PlatformCollection, *Error) {

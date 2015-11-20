@@ -13,7 +13,7 @@ type regionResponse struct {
 }
 
 func RegionById(id string) (*Region, *Error) {
-	request := request{"GET", "/regions/" + id, nil, nil}
+	request := request{"GET", "/regions/" + id, nil, nil, nil}
 	result := &regionResponse{}
 
 	err := httpClient.do(request, result)
@@ -35,7 +35,7 @@ type RegionCollection struct {
 }
 
 func Regions(s *Sorting, c *Cursor) (*RegionCollection, *Error) {
-	return fetchRegions(request{"GET", "/regions", s, c})
+	return fetchRegions(request{"GET", "/regions", nil, s, c})
 }
 
 func (self *RegionCollection) NextPage() (*RegionCollection, *Error) {

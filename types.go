@@ -13,7 +13,7 @@ type Link struct {
 func (self *Link) request() request {
 	relURL := self.URI[len(BaseUrl):]
 
-	return request{"GET", relURL, nil, nil}
+	return request{"GET", relURL, nil, nil, nil}
 }
 
 type Pagination struct {
@@ -26,6 +26,10 @@ type Pagination struct {
 // for the 'hasLinks' interface
 func (self *Pagination) links() []Link {
 	return self.Links
+}
+
+type filter interface {
+	applyToURL(*url.URL)
 }
 
 type Cursor struct {

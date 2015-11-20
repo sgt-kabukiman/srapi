@@ -25,6 +25,7 @@ func init() {
 type request struct {
 	method  string
 	url     string
+	filter  filter
 	sorting *Sorting
 	cursor  *Cursor
 }
@@ -39,6 +40,10 @@ func (self *apiClient) do(request request, dst interface{}) *Error {
 	u, err := url.Parse(self.baseUrl + request.url)
 	if err != nil {
 		return failedRequest(request, nil, err, ErrorBadURL)
+	}
+
+	if request.filter != nil {
+		request.filter.applyToURL(u)
 	}
 
 	if request.cursor != nil {
