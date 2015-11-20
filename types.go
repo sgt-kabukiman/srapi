@@ -71,3 +71,18 @@ func (self *Sorting) applyToURL(u *url.URL) {
 
 	u.RawQuery = values.Encode()
 }
+
+type TimingMethod string
+
+const (
+	TimingRealtime             TimingMethod = "realtime"
+	TimingRealtimeWithoutLoads              = "realtime_noloads"
+	TimingIngameTime                        = "ingame"
+)
+
+type GameModLevel string
+
+const (
+	NormalModerator GameModLevel = "moderator"
+	SuperModerator               = "super-moderator"
+)
