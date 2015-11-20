@@ -1,6 +1,7 @@
 package srapi
 
 import (
+	"encoding/json"
 	"net/url"
 	"strconv"
 )
@@ -22,13 +23,29 @@ type Game struct {
 		DefaultTime         TimingMethod   `json:"default-time"`
 		EmulatorsAllowed    bool           `json:"emulators-allowed"`
 	}
-	Romhack    bool
-	Platforms  []string
-	Regions    []string
-	Moderators map[string]GameModLevel
-	Created    string
-	Assets     map[string]*AssetLink
-	Links      []Link
+	Romhack bool
+
+	// do not use this field directly, use the available methods
+	PlatformsData interface{} `json:"platforms"`
+
+	// do not use this field directly, use the available methods
+	RegionsData interface{} `json:"regions"`
+
+	// do not use this field directly, use the available methods
+	ModeratorsData interface{} `json:"moderators"`
+
+	// do not use this field directly, use the available methods
+	CategoriesData interface{} `json:"categories"`
+
+	// do not use this field directly, use the available methods
+	LevelsData interface{} `json:"levels"`
+
+	// do not use this field directly, use the available methods
+	VariablesData interface{} `json:"variables"`
+
+	Created string
+	Assets  map[string]*AssetLink
+	Links   []Link
 }
 
 type AssetLink struct {
@@ -55,6 +72,116 @@ func GameById(id string) (*Game, *Error) {
 
 func GameByAbbreviation(abbrev string) (*Game, *Error) {
 	return GameById(abbrev)
+}
+
+func (self *Game) PlatformIds() []string {
+	result := make([]string, 0)
+
+	switch asserted := self.PlatformsData.(type) {
+	// list of IDs (strings)
+	case []interface{}:
+		for _, something := range asserted {
+			id, okay := something.(string)
+			if okay {
+				result = append(result, id)
+			}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	// TODO: skip the conversion back and forth and just assert our way through the available data
+	case map[string]interface{}:
+		for _, platform := range self.Platforms() {
+			result = append(result, platform.Id)
+		}
+	}
+
+	return result
+}
+
+func (self *Game) Platforms() []*Platform {
+	result := make([]*Platform, 0)
+
+	switch asserted := self.PlatformsData.(type) {
+	// list of IDs (strings)
+	case []interface{}:
+		for _, id := range self.PlatformIds() {
+			platform, err := PlatformById(id)
+			if err == nil {
+				result = append(result, platform)
+			}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	case map[string]interface{}:
+		// convert generic mess into JSON
+		encoded, _ := json.Marshal(asserted)
+
+		// ... and try to turn it back into something meaningful
+		dest := PlatformCollection{}
+		err := json.Unmarshal(encoded, &dest)
+		if err == nil {
+			for idx := range dest.Data {
+				result = append(result, &dest.Data[idx])
+			}
+		}
+	}
+
+	return result
+}
+
+func (self *Game) RegionIds() []string {
+	result := make([]string, 0)
+
+	switch asserted := self.RegionsData.(type) {
+	// list of IDs (strings)
+	case []interface{}:
+		for _, something := range asserted {
+			id, okay := something.(string)
+			if okay {
+				result = append(result, id)
+			}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	// TODO: skip the conversion back and forth and just assert our way through the available data
+	case map[string]interface{}:
+		for _, region := range self.Regions() {
+			result = append(result, region.Id)
+		}
+	}
+
+	return result
+}
+
+func (self *Game) Regions() []*Region {
+	result := make([]*Region, 0)
+
+	switch asserted := self.RegionsData.(type) {
+	// list of IDs (strings)
+	case []interface{}:
+		for _, id := range self.RegionIds() {
+			region, err := RegionById(id)
+			if err == nil {
+				result = append(result, region)
+			}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	case map[string]interface{}:
+		// convert generic mess into JSON
+		encoded, _ := json.Marshal(asserted)
+
+		// ... and try to turn it back into something meaningful
+		dest := RegionCollection{}
+		err := json.Unmarshal(encoded, &dest)
+		if err == nil {
+			for idx := range dest.Data {
+				result = append(result, &dest.Data[idx])
+			}
+		}
+	}
+
+	return result
 }
 
 // for the 'hasLinks' interface
