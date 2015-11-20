@@ -49,8 +49,6 @@ func (self *apiClient) do(request request, dst interface{}) *Error {
 		request.sorting.applyToURL(u)
 	}
 
-	fmt.Printf("url = %s\n", u.String())
-
 	req := http.Request{
 		Method: request.method,
 		URL:    u,
