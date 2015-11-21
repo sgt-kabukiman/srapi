@@ -17,11 +17,7 @@ type Run struct {
 		Status     string
 		Examiner   string
 		VerifyDate string `json:"verify-date"`
-	}
-	Players []struct {
-		Relation string `json:"rel"`
-		Id       string
-		URI      string
+		Reason     string
 	}
 	Date  string
 	Times struct {
@@ -192,6 +188,87 @@ func (self *Run) Region() *Region {
 	}
 
 	return nil
+}
+
+func (self *Run) Players() []*Player {
+	result := make([]*Player, 0)
+
+	switch asserted := self.PlayersData.(type) {
+	// list of simple links to users/guests, e.g. players=[{rel:..,id:...}, {...}]
+	case []interface{}:
+		tmp := make([]PlayerLink, 0)
+
+		if recast(asserted, &tmp) == nil {
+			for _, link := range tmp {
+				player := Player{}
+
+				switch link.Relation {
+				case "user":
+					user, err := fetchUser(link.request())
+					if err == nil {
+						player.User = user
+					}
+
+				case "guest":
+					guest, err := fetchGuest(link.request())
+					if err == nil {
+						player.Guest = guest
+					}
+				}
+
+				if player.User != nil || player.Guest != nil {
+					result = append(result, &player)
+				}
+			}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	case map[string]interface{}:
+		tmp := playerCollection{}
+
+		if recast(asserted, &tmp) == nil {
+			// each element in tmp.Data has a rel that tells us whether we have a
+			// user or a guest
+			for _, playerProps := range tmp.Data {
+				rel, exists := playerProps["rel"]
+				if exists {
+					player := Player{}
+
+					switch rel {
+					case "user":
+						user := User{}
+
+						if recast(playerProps, &user) == nil {
+							player.User = &user
+						}
+
+					case "guest":
+						guest := Guest{}
+
+						if recast(playerProps, &guest) == nil {
+							player.Guest = &guest
+						}
+					}
+
+					if player.User != nil || player.Guest != nil {
+						result = append(result, &player)
+					}
+				}
+			}
+		}
+	}
+
+	return result
+}
+
+func (self *Run) Examiner() *User {
+	link := firstLink(self, "examiner")
+	if link == nil {
+		return nil
+	}
+
+	examiner, _ := fetchUser(link.request())
+	return examiner
 }
 
 // for the 'hasLinks' interface
