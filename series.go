@@ -96,7 +96,7 @@ func (self *SeriesFilter) applyToURL(u *url.URL) {
 }
 
 func ManySeries(f *SeriesFilter, s *Sorting, c *Cursor) (*SeriesCollection, *Error) {
-	return fetchManySeries(request{"GET", "/games", f, s, c})
+	return fetchManySeries(request{"GET", "/series", f, s, c})
 }
 
 func (self *SeriesCollection) NextPage() (*SeriesCollection, *Error) {
