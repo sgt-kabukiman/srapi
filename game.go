@@ -122,9 +122,7 @@ func (self *Game) Platforms() []*Platform {
 		dest := PlatformCollection{}
 		err := json.Unmarshal(encoded, &dest)
 		if err == nil {
-			for idx := range dest.Data {
-				result = append(result, &dest.Data[idx])
-			}
+			return dest.platforms()
 		}
 	}
 
@@ -177,9 +175,7 @@ func (self *Game) Regions() []*Region {
 		dest := RegionCollection{}
 		err := json.Unmarshal(encoded, &dest)
 		if err == nil {
-			for idx := range dest.Data {
-				result = append(result, &dest.Data[idx])
-			}
+			return dest.regions()
 		}
 	}
 
@@ -198,8 +194,6 @@ func (self *Game) Categories() []*Category {
 		return collection.categories()
 	}
 
-	result := make([]*Category, 0)
-
 	// convert generic mess into JSON
 	encoded, _ := json.Marshal(self.CategoriesData)
 
@@ -207,12 +201,60 @@ func (self *Game) Categories() []*Category {
 	dest := CategoryCollection{}
 	err := json.Unmarshal(encoded, &dest)
 	if err == nil {
-		for idx := range dest.Data {
-			result = append(result, &dest.Data[idx])
-		}
+		return dest.categories()
 	}
 
-	return result
+	return make([]*Category, 0)
+}
+
+func (self *Game) Levels() []*Level {
+	if self.LevelsData == nil {
+		link := firstLink(self, "levels")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchLevels(link.request())
+
+		return collection.levels()
+	}
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.LevelsData)
+
+	// ... and try to turn it back into something meaningful
+	dest := LevelCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		return dest.levels()
+	}
+
+	return make([]*Level, 0)
+}
+
+func (self *Game) Variables() []*Variable {
+	if self.VariablesData == nil {
+		link := firstLink(self, "variables")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchVariables(link.request())
+
+		return collection.variables()
+	}
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.VariablesData)
+
+	// ... and try to turn it back into something meaningful
+	dest := VariableCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		return dest.variables()
+	}
+
+	return make([]*Variable, 0)
 }
 
 // for the 'hasLinks' interface

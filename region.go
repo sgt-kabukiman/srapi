@@ -38,6 +38,16 @@ func Regions(s *Sorting, c *Cursor) (*RegionCollection, *Error) {
 	return fetchRegions(request{"GET", "/regions", nil, s, c})
 }
 
+func (self *RegionCollection) regions() []*Region {
+	result := make([]*Region, 0)
+
+	for idx := range self.Data {
+		result = append(result, &self.Data[idx])
+	}
+
+	return result
+}
+
 func (self *RegionCollection) NextPage() (*RegionCollection, *Error) {
 	return self.fetchLink("next")
 }

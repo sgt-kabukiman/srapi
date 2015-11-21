@@ -37,6 +37,16 @@ func Platforms(s *Sorting, c *Cursor) (*PlatformCollection, *Error) {
 	return fetchPlatforms(request{"GET", "/platforms", nil, s, c})
 }
 
+func (self *PlatformCollection) platforms() []*Platform {
+	result := make([]*Platform, 0)
+
+	for idx := range self.Data {
+		result = append(result, &self.Data[idx])
+	}
+
+	return result
+}
+
 func (self *PlatformCollection) NextPage() (*PlatformCollection, *Error) {
 	return self.fetchLink("next")
 }
