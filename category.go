@@ -68,6 +68,31 @@ func (self *Category) Game() *Game {
 	return nil
 }
 
+func (self *Category) Variables() []*Variable {
+	if self.VariablesData == nil {
+		link := firstLink(self, "variables")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchVariables(link.request())
+
+		return collection.variables()
+	}
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.VariablesData)
+
+	// ... and try to turn it back into something meaningful
+	dest := VariableCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		return dest.variables()
+	}
+
+	return make([]*Variable, 0)
+}
+
 // for the 'hasLinks' interface
 func (self *Category) links() []Link {
 	return self.Links
