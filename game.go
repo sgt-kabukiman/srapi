@@ -24,6 +24,9 @@ type Game struct {
 		EmulatorsAllowed    bool           `json:"emulators-allowed"`
 	}
 	Romhack bool
+	Created string
+	Assets  map[string]*AssetLink
+	Links   []Link
 
 	// do not use this field directly, use the available methods
 	PlatformsData interface{} `json:"platforms"`
@@ -42,10 +45,6 @@ type Game struct {
 
 	// do not use this field directly, use the available methods
 	VariablesData interface{} `json:"variables"`
-
-	Created string
-	Assets  map[string]*AssetLink
-	Links   []Link
 }
 
 type AssetLink struct {
@@ -59,7 +58,10 @@ type gameResponse struct {
 }
 
 func GameById(id string) (*Game, *Error) {
-	request := request{"GET", "/games/" + id, nil, nil, nil}
+	return fetchGame(request{"GET", "/games/" + id, nil, nil, nil})
+}
+
+func fetchGame(request request) (*Game, *Error) {
 	result := &gameResponse{}
 
 	err := httpClient.do(request, result)
@@ -184,6 +186,35 @@ func (self *Game) Regions() []*Region {
 	return result
 }
 
+func (self *Game) Categories() []*Category {
+	if self.CategoriesData == nil {
+		link := firstLink(self, "categories")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchCategories(link.request())
+
+		return collection.categories()
+	}
+
+	result := make([]*Category, 0)
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.CategoriesData)
+
+	// ... and try to turn it back into something meaningful
+	dest := CategoryCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		for idx := range dest.Data {
+			result = append(result, &dest.Data[idx])
+		}
+	}
+
+	return result
+}
+
 // for the 'hasLinks' interface
 func (self *Game) links() []Link {
 	return self.Links
@@ -192,6 +223,16 @@ func (self *Game) links() []Link {
 type GameCollection struct {
 	Data       []Game
 	Pagination Pagination
+}
+
+func (self *GameCollection) games() []*Game {
+	result := make([]*Game, 0)
+
+	for idx := range self.Data {
+		result = append(result, &self.Data[idx])
+	}
+
+	return result
 }
 
 type GameFilter struct {
@@ -263,12 +304,14 @@ func (self *GameCollection) fetchLink(name string) (*GameCollection, *Error) {
 	return fetchGames(next.request())
 }
 
+// always returns a collection, even when an error is returned;
+// makes other code more monadic
 func fetchGames(request request) (*GameCollection, *Error) {
 	result := &GameCollection{}
 
 	err := httpClient.do(request, result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	return result, nil

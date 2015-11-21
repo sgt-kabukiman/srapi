@@ -54,12 +54,14 @@ func (self *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Er
 	return fetchPlatforms(next.request())
 }
 
+// always returns a collection, even when an error is returned;
+// makes other code more monadic
 func fetchPlatforms(request request) (*PlatformCollection, *Error) {
 	result := &PlatformCollection{}
 
 	err := httpClient.do(request, result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	return result, nil

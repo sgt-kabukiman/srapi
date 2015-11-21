@@ -55,12 +55,14 @@ func (self *RegionCollection) fetchLink(name string) (*RegionCollection, *Error)
 	return fetchRegions(next.request())
 }
 
+// always returns a collection, even when an error is returned;
+// makes other code more monadic
 func fetchRegions(request request) (*RegionCollection, *Error) {
 	result := &RegionCollection{}
 
 	err := httpClient.do(request, result)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	return result, nil
