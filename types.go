@@ -16,6 +16,12 @@ func (self *Link) request() request {
 	return request{"GET", relURL, nil, nil, nil}
 }
 
+type AssetLink struct {
+	URI    string
+	Width  int
+	Height int
+}
+
 type Pagination struct {
 	Offset int
 	Max    int

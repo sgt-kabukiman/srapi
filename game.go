@@ -47,12 +47,6 @@ type Game struct {
 	VariablesData interface{} `json:"variables"`
 }
 
-type AssetLink struct {
-	URI    string
-	Width  int
-	Height int
-}
-
 type gameResponse struct {
 	Data Game
 }
@@ -74,6 +68,17 @@ func fetchGame(request request) (*Game, *Error) {
 
 func GameByAbbreviation(abbrev string) (*Game, *Error) {
 	return GameById(abbrev)
+}
+
+func (self *Game) Series() *Series {
+	link := firstLink(self, "series")
+	if link == nil {
+		return nil
+	}
+
+	collection, _ := fetchOneSeries(link.request())
+
+	return collection
 }
 
 func (self *Game) PlatformIds() []string {
@@ -255,6 +260,17 @@ func (self *Game) Variables() []*Variable {
 	}
 
 	return make([]*Variable, 0)
+}
+
+func (self *Game) Romhacks() *GameCollection {
+	link := firstLink(self, "romhacks")
+	if link == nil {
+		return nil
+	}
+
+	collection, _ := fetchGames(link.request())
+
+	return collection
 }
 
 // for the 'hasLinks' interface
