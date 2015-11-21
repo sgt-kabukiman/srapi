@@ -17,6 +17,13 @@ func TestGetRegion(t *testing.T) {
 	}
 }
 
+func TestGetNonexistingRegion(t *testing.T) {
+	_, err := RegionById("i_do_not_exist")
+	if err == nil {
+		t.Fatal("Fetching a nonexisting region should yield an error.")
+	}
+}
+
 func TestGetRegions(t *testing.T) {
 	regions, err := Regions(nil, nil)
 	if err != nil {
