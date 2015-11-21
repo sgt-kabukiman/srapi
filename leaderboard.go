@@ -3,6 +3,7 @@ package srapi
 import (
 	"encoding/json"
 	"net/url"
+	"strconv"
 )
 
 type Leaderboard struct {
@@ -45,7 +46,7 @@ type leaderboardResponse struct {
 	Data Leaderboard
 }
 
-func FullGameLeaderboard(game *Game, cat *Category) (*Leaderboard, *Error) {
+func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions) (*Leaderboard, *Error) {
 	if cat == nil {
 		return nil, &Error{"", "", ErrorBadLogic, "No category given."}
 	}
@@ -58,10 +59,10 @@ func FullGameLeaderboard(game *Game, cat *Category) (*Leaderboard, *Error) {
 		game = cat.Game()
 	}
 
-	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.Id + "/category/" + cat.Id, nil, nil, nil})
+	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.Id + "/category/" + cat.Id, options, nil, nil})
 }
 
-func LevelLeaderboard(game *Game, cat *Category, level *Level) (*Leaderboard, *Error) {
+func LevelLeaderboard(game *Game, cat *Category, level *Level, options *LeaderboardOptions) (*Leaderboard, *Error) {
 	if cat == nil {
 		return nil, &Error{"", "", ErrorBadLogic, "No category given."}
 	}
@@ -78,7 +79,7 @@ func LevelLeaderboard(game *Game, cat *Category, level *Level) (*Leaderboard, *E
 		game = level.Game()
 	}
 
-	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.Id + "/level/" + level.Id + "/" + cat.Id, nil, nil, nil})
+	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.Id + "/level/" + level.Id + "/" + cat.Id, options, nil, nil})
 }
 
 func fetchLeaderboard(request request) (*Leaderboard, *Error) {
@@ -238,6 +239,63 @@ func (self *Leaderboard) links() []Link {
 	return self.Links
 }
 
+type LeaderboardOptions struct {
+	Top       int
+	Platform  string
+	Region    string
+	Emulators *bool
+	VideoOnly *bool
+	Timing    TimingMethod
+	Date      string
+	Values    map[string]string
+}
+
+func (self *LeaderboardOptions) applyToURL(u *url.URL) {
+	values := u.Query()
+
+	if self.Top > 0 {
+		values.Set("top", strconv.Itoa(self.Top))
+	}
+
+	if len(self.Platform) > 0 {
+		values.Set("platform", self.Platform)
+	}
+
+	if len(self.Region) > 0 {
+		values.Set("region", self.Region)
+	}
+
+	if len(self.Timing) > 0 {
+		values.Set("timing", string(self.Timing))
+	}
+
+	if len(self.Date) > 0 {
+		values.Set("date", self.Date)
+	}
+
+	if self.Emulators != nil {
+		if *self.Emulators {
+			values.Set("emulators", "yes")
+		} else {
+			values.Set("emulators", "no")
+		}
+	}
+
+	if self.VideoOnly != nil {
+		if *self.VideoOnly {
+			values.Set("video-only", "yes")
+		} else {
+			values.Set("video-only", "no")
+		}
+	}
+
+	for varId, valueId := range self.Values {
+		values.Set("var-"+varId, valueId)
+	}
+
+	u.RawQuery = values.Encode()
+}
+
 type LeaderboardCollection struct {
 	Data       []Leaderboard
 	Pagination Pagination
@@ -254,62 +312,22 @@ func (self *LeaderboardCollection) runs() []*Leaderboard {
 }
 
 type LeaderboardFilter struct {
-	User     string
-	Guest    string
-	Examiner string
-	Game     string
-	Level    string
-	Category string
-	Platform string
-	Region   string
-	Emulated *bool
-	Status   string
+	Top       int
+	SkipEmpty *bool
 }
 
 func (self *LeaderboardFilter) applyToURL(u *url.URL) {
 	values := u.Query()
 
-	if len(self.User) > 0 {
-		values.Set("user", self.User)
+	if self.Top > 0 {
+		values.Set("top", strconv.Itoa(self.Top))
 	}
 
-	if len(self.Guest) > 0 {
-		values.Set("guest", self.Guest)
-	}
-
-	if len(self.Examiner) > 0 {
-		values.Set("examiner", self.Examiner)
-	}
-
-	if len(self.Game) > 0 {
-		values.Set("game", self.Game)
-	}
-
-	if len(self.Level) > 0 {
-		values.Set("level", self.Level)
-	}
-
-	if len(self.Category) > 0 {
-		values.Set("category", self.Category)
-	}
-
-	if len(self.Platform) > 0 {
-		values.Set("platform", self.Platform)
-	}
-
-	if len(self.Region) > 0 {
-		values.Set("region", self.Region)
-	}
-
-	if len(self.Status) > 0 {
-		values.Set("status", self.Status)
-	}
-
-	if self.Emulated != nil {
-		if *self.Emulated {
-			values.Set("emulated", "yes")
+	if self.SkipEmpty != nil {
+		if *self.SkipEmpty {
+			values.Set("skip-empty", "yes")
 		} else {
-			values.Set("emulated", "no")
+			values.Set("skip-empty", "no")
 		}
 	}
 
