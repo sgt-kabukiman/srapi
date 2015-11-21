@@ -51,6 +51,52 @@ func (self *Series) Games() *GameCollection {
 	return collection
 }
 
+func (self *Series) ModeratorMap() map[string]GameModLevel {
+	// we have a simple map between user IDs and mod levels
+	assertedMap, okay := self.ModeratorsData.(map[string]GameModLevel)
+	if okay {
+		return assertedMap
+	}
+
+	// maybe we got a list of embedded users
+	result := make(map[string]GameModLevel, 0)
+	tmp := UserCollection{}
+
+	if recast(self.ModeratorsData, &tmp) == nil {
+		for _, user := range tmp.users() {
+			result[user.Id] = UnknownModLevel
+		}
+	}
+
+	return result
+}
+
+func (self *Series) Moderators() []*User {
+	// we have a simple map between user IDs and mod levels
+	assertedMap, okay := self.ModeratorsData.(map[string]GameModLevel)
+	if okay {
+		result := make([]*User, 0)
+
+		for userId := range assertedMap {
+			user, err := UserById(userId)
+			if err == nil {
+				result = append(result, user)
+			}
+		}
+
+		return result
+	}
+
+	// maybe we got a list of embedded users
+	tmp := UserCollection{}
+
+	if recast(self.ModeratorsData, &tmp) == nil {
+		return tmp.users()
+	}
+
+	return make([]*User, 0)
+}
+
 // for the 'hasLinks' interface
 func (self *Series) links() []Link {
 	return self.Links

@@ -91,4 +91,5 @@ type GameModLevel string
 const (
 	NormalModerator GameModLevel = "moderator"
 	SuperModerator               = "super-moderator"
+	UnknownModLevel              = "unknown"
 )
