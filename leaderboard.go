@@ -34,6 +34,9 @@ type Leaderboard struct {
 
 	// do not use this field directly, use the available methods
 	PlayersData interface{} `json:"players"`
+
+	// do not use this field directly, use the available methods
+	VariablesData interface{} `json:"variables"`
 }
 
 type RankedRun struct {
@@ -232,6 +235,20 @@ func (self *Leaderboard) Players() []*Player {
 	}
 
 	return result
+}
+
+func (self *Leaderboard) Variables() []*Variable {
+	if self.VariablesData == nil {
+		return make([]*Variable, 0)
+	}
+
+	tmp := VariableCollection{}
+
+	if recast(self.VariablesData, &tmp) == nil {
+		return tmp.variables()
+	}
+
+	return make([]*Variable, 0)
 }
 
 // for the 'hasLinks' interface
