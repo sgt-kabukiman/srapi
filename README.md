@@ -1,5 +1,6 @@
 speedrun.com API Client for Go
 ==============================
+[![GoDoc](https://godoc.org/github.com/sgt-kabukiman/srapi?status.svg)](https://godoc.org/github.com/sgt-kabukiman/srapi)
 
 This Go package implements a client for the
 [speedrun.com API](https://github.com/speedruncom/api). It's not 100% complete
