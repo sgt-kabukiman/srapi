@@ -96,38 +96,7 @@ func (pb *PersonalBest) Players() []*Player {
 		return pb.Run.Players()
 	}
 
-	var result []*Player
-
-	tmp := playerCollection{}
-
-	if recast(pb.PlayersData, &tmp) == nil {
-		// each element in tmp.Data has a rel that tells us whether we have a
-		// user or a guest
-		for _, playerProps := range tmp.Data {
-			rel, exists := playerProps["rel"]
-			if exists {
-				player := Player{}
-
-				switch rel {
-				case "user":
-					if user := toUser(playerProps); user != nil {
-						player.User = user
-					}
-
-				case "guest":
-					if guest := toGuest(playerProps); guest != nil {
-						player.Guest = guest
-					}
-				}
-
-				if player.User != nil || player.Guest != nil {
-					result = append(result, &player)
-				}
-			}
-		}
-	}
-
-	return result
+	return recastToPlayerList(pb.PlayersData)
 }
 
 // Examiner returns the user that examined the run after submission. This can

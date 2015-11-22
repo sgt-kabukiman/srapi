@@ -78,3 +78,38 @@ func recastToModerators(data interface{}) []*User {
 
 	return toUserCollection(data).users()
 }
+
+// recastToPlayerList casts a player blob into a list of players.
+func recastToPlayerList(data interface{}) []*Player {
+	var result []*Player
+
+	tmp := playerCollection{}
+	if recast(data, &tmp) == nil {
+		// each element in tmp.Data has a rel that tells us whether we have a
+		// user or a guest
+		for _, playerProps := range tmp.Data {
+			rel, exists := playerProps["rel"]
+			if exists {
+				player := Player{}
+
+				switch rel {
+				case "user":
+					if user := toUser(playerProps); user != nil {
+						player.User = user
+					}
+
+				case "guest":
+					if guest := toGuest(playerProps); guest != nil {
+						player.Guest = guest
+					}
+				}
+
+				if player.User != nil || player.Guest != nil {
+					result = append(result, &player)
+				}
+			}
+		}
+	}
+
+	return result
+}

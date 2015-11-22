@@ -190,36 +190,7 @@ func (lb *Leaderboard) Players() []*Player {
 		return result
 	}
 
-	tmp := playerCollection{}
-
-	if recast(lb.PlayersData, &tmp) == nil {
-		// each element in tmp.Data has a rel that tells us whether we have a
-		// user or a guest
-		for _, playerProps := range tmp.Data {
-			rel, exists := playerProps["rel"]
-			if exists {
-				player := Player{}
-
-				switch rel {
-				case "user":
-					if user := toUser(playerProps); user != nil {
-						player.User = user
-					}
-
-				case "guest":
-					if guest := toGuest(playerProps); guest != nil {
-						player.Guest = guest
-					}
-				}
-
-				if player.User != nil || player.Guest != nil {
-					result = append(result, &player)
-				}
-			}
-		}
-	}
-
-	return result
+	return recastToPlayerList(lb.PlayersData)
 }
 
 // Variables returns a list of all variables that are present in the leaderboard.
