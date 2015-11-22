@@ -28,6 +28,27 @@ func (pl *PlayerLink) request(filter filter, sort *Sorting) request {
 	return request{"GET", relURL, filter, sort, nil}
 }
 
+// fetch retrieves the user or guest the link points to
+func (pl *PlayerLink) fetch() *Player {
+	player := Player{}
+
+	switch pl.Relation {
+	case "user":
+		if user := fetchUserLink(pl); user != nil {
+			player.User = user
+			return &player
+		}
+
+	case "guest":
+		if guest := fetchGuestLink(pl); guest != nil {
+			player.Guest = guest
+			return &player
+		}
+	}
+
+	return nil
+}
+
 // playerCollection is a list of players, used inside Run structs
 type playerCollection struct {
 	Data []map[string]interface{}

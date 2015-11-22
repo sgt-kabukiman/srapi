@@ -209,22 +209,8 @@ func (r *Run) Players() []*Player {
 
 		if recast(asserted, &tmp) == nil {
 			for _, link := range tmp {
-				player := Player{}
-
-				switch link.Relation {
-				case "user":
-					if user := fetchUserLink(&link); user != nil {
-						player.User = user
-					}
-
-				case "guest":
-					if guest := fetchGuestLink(&link); guest != nil {
-						player.Guest = guest
-					}
-				}
-
-				if player.User != nil || player.Guest != nil {
-					result = append(result, &player)
+				if player := link.fetch(); player != nil {
+					result = append(result, player)
 				}
 			}
 		}
