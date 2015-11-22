@@ -64,45 +64,14 @@ func (s *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
 // map containts UnknownModLevel for every user. If you need both, there is no
 // other way than to perform two requests.
 func (s *Series) ModeratorMap() map[string]GameModLevel {
-	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := s.ModeratorsData.(map[string]GameModLevel)
-	if okay {
-		return assertedMap
-	}
-
-	// maybe we got a list of embedded users
-	result := make(map[string]GameModLevel, 0)
-	tmp := UserCollection{}
-
-	if recast(s.ModeratorsData, &tmp) == nil {
-		for _, user := range tmp.users() {
-			result[user.ID] = UnknownModLevel
-		}
-	}
-
-	return result
+	return recastToModeratorMap(&s.ModeratorsData)
 }
 
 // Moderators returns a list of users that are moderators of the series. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
 func (s *Series) Moderators() []*User {
-	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := s.ModeratorsData.(map[string]GameModLevel)
-	if okay {
-		var result []*User
-
-		for userID := range assertedMap {
-			user, err := UserByID(userID)
-			if err == nil {
-				result = append(result, user)
-			}
-		}
-
-		return result
-	}
-
-	return toUserCollection(s.ModeratorsData).users()
+	return recastToModerators(&s.ModeratorsData)
 }
 
 // for the 'hasLinks' interface

@@ -269,46 +269,14 @@ func (g *Game) Romhacks() *GameCollection {
 // map containts UnknownModLevel for every user. If you need both, there is no
 // other way than to perform two requests.
 func (g *Game) ModeratorMap() map[string]GameModLevel {
-	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := g.ModeratorsData.(map[string]GameModLevel)
-	if okay {
-		return assertedMap
-	}
-
-	// maybe we got a list of embedded users
-	result := make(map[string]GameModLevel, 0)
-	tmp := UserCollection{}
-
-	if recast(g.ModeratorsData, &tmp) == nil {
-		for _, user := range tmp.users() {
-			result[user.ID] = UnknownModLevel
-		}
-	}
-
-	return result
+	return recastToModeratorMap(&g.ModeratorsData)
 }
 
 // Moderators returns a list of users that are moderators of the game. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
 func (g *Game) Moderators() []*User {
-	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := g.ModeratorsData.(map[string]GameModLevel)
-	if okay {
-		var result []*User
-
-		for userID := range assertedMap {
-			user, err := UserByID(userID)
-			if err == nil {
-				result = append(result, user)
-			}
-		}
-
-		return result
-	}
-
-	// maybe we got a list of embedded users
-	return toUserCollection(g.ModeratorsData).users()
+	return recastToModerators(&g.ModeratorsData)
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the game.
