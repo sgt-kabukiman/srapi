@@ -2,13 +2,23 @@
 
 package srapi
 
+// Platform represents a platform.
 type Platform struct {
-	Id       string
-	Name     string
+	// the unique ID
+	ID string
+
+	// the name of the platform
+	Name string
+
+	// the year the platform was released
 	Released int
-	Links    []Link
+
+	// API links to related resources
+	Links []Link
 }
 
+// toPlatform transforms a data blob to a Platform struct, if possible.
+// Returns nil if casting the data was not successful or if data was nil.
 func toPlatform(data interface{}) *Platform {
 	dest := Platform{}
 
@@ -19,6 +29,9 @@ func toPlatform(data interface{}) *Platform {
 	return nil
 }
 
+// toPlatformCollection transforms a data blob to a PlatformCollection.
+// If data is nil or casting was unsuccessful, an empty PlatformCollection
+// is returned.
 func toPlatformCollection(data interface{}) *PlatformCollection {
 	tmp := &PlatformCollection{}
 	recast(data, tmp)
@@ -26,63 +39,88 @@ func toPlatformCollection(data interface{}) *PlatformCollection {
 	return tmp
 }
 
+// platformResponse models the actual API response from the server
 type platformResponse struct {
+	// the one platform contained in the response
 	Data Platform
 }
 
-func PlatformById(id string) (*Platform, *Error) {
+// PlatformByID tries to fetch a single platform, identified by its ID.
+// When an error is returned, the returned platform is nil.
+func PlatformByID(id string) (*Platform, *Error) {
 	return fetchPlatform(request{"GET", "/platforms/" + id, nil, nil, nil})
 }
 
-func (self *Platform) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
+// Runs fetches a list of runs done on the platform, optionally filtered and
+// sorted. This function always returns a RunCollection.
+func (p *Platform) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	return fetchRunsLink(firstLink(p, "runs"), filter, sort)
 }
 
-func (self *Platform) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	return fetchGamesLink(firstLink(self, "games"), filter, sort)
+// Games fetches a list of games available on the platform, optionally filtered
+// and sorted. This function always returns a GameCollection.
+func (p *Platform) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+	return fetchGamesLink(firstLink(p, "games"), filter, sort)
 }
 
 // for the 'hasLinks' interface
-func (self *Platform) links() []Link {
-	return self.Links
+func (p *Platform) links() []Link {
+	return p.Links
 }
 
+// PlatformCollection is one page of a platform list. It consists of the platforms
+// as well as some pagination information (like links to the next or previous page).
 type PlatformCollection struct {
 	Data       []Platform
 	Pagination Pagination
 }
 
+// Platforms retrieves a collection of platforms
 func Platforms(s *Sorting, c *Cursor) (*PlatformCollection, *Error) {
 	return fetchPlatforms(request{"GET", "/platforms", nil, s, c})
 }
 
-func (self *PlatformCollection) platforms() []*Platform {
-	result := make([]*Platform, 0)
+// platforms returns a list of pointers to the platforms; used for cases where
+// there is no pagination and the caller wants to return a flat slice of
+// platforms instead of a collection (which would be misleading, as collections
+// imply pagination).
+func (pc *PlatformCollection) platforms() []*Platform {
+	var result []*Platform
 
-	for idx := range self.Data {
-		result = append(result, &self.Data[idx])
+	for idx := range pc.Data {
+		result = append(result, &pc.Data[idx])
 	}
 
 	return result
 }
 
-func (self *PlatformCollection) NextPage() (*PlatformCollection, *Error) {
-	return self.fetchLink("next")
+// NextPage tries to follow the "next" link and retrieve the next page of
+// platforms. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (pc *PlatformCollection) NextPage() (*PlatformCollection, *Error) {
+	return pc.fetchLink("next")
 }
 
-func (self *PlatformCollection) PrevPage() (*PlatformCollection, *Error) {
-	return self.fetchLink("prev")
+// PrevPage tries to follow the "prev" link and retrieve the previous page of
+// platforms. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (pc *PlatformCollection) PrevPage() (*PlatformCollection, *Error) {
+	return pc.fetchLink("prev")
 }
 
-func (self *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Error) {
-	next := firstLink(&self.Pagination, name)
+// fetchLink tries to fetch a link, if it exists. If there is no such link, an
+// empty collection and an error is returned. Otherwise, the error is nil.
+func (pc *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Error) {
+	next := firstLink(&pc.Pagination, name)
 	if next == nil {
-		return nil, nil
+		return &PlatformCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
 	return fetchPlatforms(next.request(nil, nil))
 }
 
+// fetchPlatform fetches a single platform from the network. If the request failed,
+// the returned platform is nil. Otherwise, the error is nil.
 func fetchPlatform(request request) (*Platform, *Error) {
 	result := &platformResponse{}
 
@@ -94,17 +132,8 @@ func fetchPlatform(request request) (*Platform, *Error) {
 	return &result.Data, nil
 }
 
-func fetchPlatformLink(link *Link) *Platform {
-	if link == nil {
-		return nil
-	}
-
-	platform, _ := fetchPlatform(link.request(nil, nil))
-	return platform
-}
-
-// always returns a collection, even when an error is returned;
-// makes other code more monadic
+// fetchPlatforms fetches a list of platforms from the network. It always
+// returns a collection, even when an error is returned.
 func fetchPlatforms(request request) (*PlatformCollection, *Error) {
 	result := &PlatformCollection{}
 
@@ -114,13 +143,4 @@ func fetchPlatforms(request request) (*PlatformCollection, *Error) {
 	}
 
 	return result, nil
-}
-
-func fetchPlatformsLink(link *Link, filter filter, sort *Sorting) *PlatformCollection {
-	if link == nil {
-		return &PlatformCollection{}
-	}
-
-	collection, _ := fetchPlatforms(link.request(filter, sort))
-	return collection
 }

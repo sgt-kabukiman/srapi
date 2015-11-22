@@ -4,47 +4,68 @@ package srapi
 
 import "net/url"
 
+// Series represents a series.
 type Series struct {
-	Id    string
+	// unique ID
+	ID string
+
+	// names, international is always set, japanese sometimes
 	Names struct {
 		International string
 		Japanese      string
 	}
+
+	// unique abbreviation of the game, e.g. "gta" for Grand Theft Auto
 	Abbreviation string
-	Weblink      string
-	Assets       map[string]*AssetLink
-	Links        []Link
+
+	// link to the series page on speedrun.com
+	Weblink string
+
+	// list of assets (images) for the series page design on speedrun.com, like
+	// icons for trophies, background images etc.
+	Assets map[string]*AssetLink
+
+	// API links to related resources
+	Links []Link
 
 	// do not use this field directly, use the available methods
 	ModeratorsData interface{} `json:"moderators"`
 }
 
-func toSeriesCollection(data interface{}) *SeriesCollection {
-	tmp := &SeriesCollection{}
-	recast(data, tmp)
-
-	return tmp
-}
-
+// seriesResponse models the actual API response from the server
 type seriesResponse struct {
+	// the one series contained in the response
 	Data Series
 }
 
-func SeriesById(id string) (*Series, *Error) {
+// SeriesByID tries to fetch a single series, identified by its ID.
+// When an error is returned, the returned series is nil.
+func SeriesByID(id string) (*Series, *Error) {
 	return fetchOneSeries(request{"GET", "/series/" + id, nil, nil, nil})
 }
 
+// SeriesByAbbreviation tries to fetch a single series, identified by its
+// abbreviation. This is convenient for resolving abbreviations, but as they can
+// change (in constrast to the ID, which is fixed), it should be used with
+// caution.
+// When an error is returned, the returned series is nil.
 func SeriesByAbbreviation(abbrev string) (*Series, *Error) {
-	return SeriesById(abbrev)
+	return SeriesByID(abbrev)
 }
 
-func (self *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	return fetchGamesLink(firstLink(self, "games"), filter, sort)
+// Games fetches the list of games for the series, optionally filtering it.
+func (s *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+	return fetchGamesLink(firstLink(s, "games"), filter, sort)
 }
 
-func (self *Series) ModeratorMap() map[string]GameModLevel {
+// ModeratorMap returns a map of user IDs to their respective moderation levels.
+// Note that due to limitations of the speedrun.com API, the mod levels are not
+// available when moderators have been embedded. In this case, the resulting
+// map containts UnknownModLevel for every user. If you need both, there is no
+// other way than to perform two requests.
+func (s *Series) ModeratorMap() map[string]GameModLevel {
 	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := self.ModeratorsData.(map[string]GameModLevel)
+	assertedMap, okay := s.ModeratorsData.(map[string]GameModLevel)
 	if okay {
 		return assertedMap
 	}
@@ -53,23 +74,26 @@ func (self *Series) ModeratorMap() map[string]GameModLevel {
 	result := make(map[string]GameModLevel, 0)
 	tmp := UserCollection{}
 
-	if recast(self.ModeratorsData, &tmp) == nil {
+	if recast(s.ModeratorsData, &tmp) == nil {
 		for _, user := range tmp.users() {
-			result[user.Id] = UnknownModLevel
+			result[user.ID] = UnknownModLevel
 		}
 	}
 
 	return result
 }
 
-func (self *Series) Moderators() []*User {
+// Moderators returns a list of users that are moderators of the series. If
+// moderators were not embedded, they will be fetched individually from the
+// network.
+func (s *Series) Moderators() []*User {
 	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := self.ModeratorsData.(map[string]GameModLevel)
+	assertedMap, okay := s.ModeratorsData.(map[string]GameModLevel)
 	if okay {
-		result := make([]*User, 0)
+		var result []*User
 
-		for userId := range assertedMap {
-			user, err := UserById(userId)
+		for userID := range assertedMap {
+			user, err := UserByID(userID)
 			if err == nil {
 				result = append(result, user)
 			}
@@ -78,74 +102,94 @@ func (self *Series) Moderators() []*User {
 		return result
 	}
 
-	return toUserCollection(self.ModeratorsData).users()
+	return toUserCollection(s.ModeratorsData).users()
 }
 
 // for the 'hasLinks' interface
-func (self *Series) links() []Link {
-	return self.Links
+func (s *Series) links() []Link {
+	return s.Links
 }
 
-type SeriesCollection struct {
-	Data       []Series
-	Pagination Pagination
-}
-
-func (self *SeriesCollection) series() []*Series {
-	result := make([]*Series, 0)
-
-	for idx := range self.Data {
-		result = append(result, &self.Data[idx])
-	}
-
-	return result
-}
-
+// SeriesFilter represents the possible filtering options when fetching a list
+// of series.
 type SeriesFilter struct {
 	Name         string
 	Abbreviation string
 	Moderator    string
 }
 
-func (self *SeriesFilter) applyToURL(u *url.URL) {
+// applyToURL merged the filter into a URL.
+func (sf *SeriesFilter) applyToURL(u *url.URL) {
 	values := u.Query()
 
-	if len(self.Name) > 0 {
-		values.Set("name", self.Name)
+	if len(sf.Name) > 0 {
+		values.Set("name", sf.Name)
 	}
 
-	if len(self.Abbreviation) > 0 {
-		values.Set("abbreviation", self.Abbreviation)
+	if len(sf.Abbreviation) > 0 {
+		values.Set("abbreviation", sf.Abbreviation)
 	}
 
-	if len(self.Moderator) > 0 {
-		values.Set("moderator", self.Moderator)
+	if len(sf.Moderator) > 0 {
+		values.Set("moderator", sf.Moderator)
 	}
 
 	u.RawQuery = values.Encode()
 }
 
+// SeriesCollection is one page of the entire series list. It consists of the
+// series as well as some pagination information (like links to the next or
+// previous page).
+type SeriesCollection struct {
+	Data       []Series
+	Pagination Pagination
+}
+
+// ManySeries retrieves a collection of series.
 func ManySeries(f *SeriesFilter, s *Sorting, c *Cursor) (*SeriesCollection, *Error) {
 	return fetchManySeries(request{"GET", "/series", f, s, c})
 }
 
-func (self *SeriesCollection) NextPage() (*SeriesCollection, *Error) {
-	return self.fetchLink("next")
+// series returns a list of pointers to the series; used for cases where there is
+// no pagination and the caller wants to return a flat slice of series instead of
+// a collection (which would be misleading, as collections imply pagination).
+func (sc *SeriesCollection) series() []*Series {
+	var result []*Series
+
+	for idx := range sc.Data {
+		result = append(result, &sc.Data[idx])
+	}
+
+	return result
 }
 
-func (self *SeriesCollection) PrevPage() (*SeriesCollection, *Error) {
-	return self.fetchLink("prev")
+// NextPage tries to follow the "next" link and retrieve the next page of
+// series. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (sc *SeriesCollection) NextPage() (*SeriesCollection, *Error) {
+	return sc.fetchLink("next")
 }
 
-func (self *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error) {
-	next := firstLink(&self.Pagination, name)
+// PrevPage tries to follow the "prev" link and retrieve the previous page of
+// series. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (sc *SeriesCollection) PrevPage() (*SeriesCollection, *Error) {
+	return sc.fetchLink("prev")
+}
+
+// fetchLink tries to fetch a link, if it exists. If there is no such link, an
+// empty collection and an error is returned. Otherwise, the error is nil.
+func (sc *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error) {
+	next := firstLink(&sc.Pagination, name)
 	if next == nil {
-		return nil, nil
+		return &SeriesCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
 	return fetchManySeries(next.request(nil, nil))
 }
 
+// fetchOneSeries fetches a single series from the network. If the request failed,
+// the returned series is nil. Otherwise, the error is nil.
 func fetchOneSeries(request request) (*Series, *Error) {
 	result := &seriesResponse{}
 
@@ -157,7 +201,10 @@ func fetchOneSeries(request request) (*Series, *Error) {
 	return &result.Data, nil
 }
 
-func fetchOneSeriesLink(link *Link) *Series {
+// fetchOneSeriesLink tries to fetch a given link and interpret the response as
+// a single series. If the link is nil or the series could not be fetched,
+// nil is returned.
+func fetchOneSeriesLink(link requestable) *Series {
 	if link == nil {
 		return nil
 	}
@@ -166,8 +213,8 @@ func fetchOneSeriesLink(link *Link) *Series {
 	return series
 }
 
-// always returns a collection, even when an error is returned;
-// makes other code more monadic
+// fetchManySeries fetches a list of series from the network. It always
+// returns a collection, even when an error is returned.
 func fetchManySeries(request request) (*SeriesCollection, *Error) {
 	result := &SeriesCollection{}
 
@@ -177,13 +224,4 @@ func fetchManySeries(request request) (*SeriesCollection, *Error) {
 	}
 
 	return result, nil
-}
-
-func fetchManySeriesLink(link *Link, filter filter, sort *Sorting) *SeriesCollection {
-	if link == nil {
-		return &SeriesCollection{}
-	}
-
-	collection, _ := fetchManySeries(link.request(filter, sort))
-	return collection
 }

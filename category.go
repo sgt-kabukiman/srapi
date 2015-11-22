@@ -6,17 +6,32 @@ import "net/url"
 
 // Category is a structure representing a game category, either full-game or per-level.
 type Category struct {
-	Id      string
-	Name    string
+	// unique category ID
+	ID string
+
+	// category name, for example "Any%"
+	Name string
+
+	// link to this category on speedrun.com
 	Weblink string
-	Type    string
-	Rules   string
+
+	// either "full-game" or "per-level"
+	Type string
+
+	// ruleset for the category, arbitrary text
+	Rules string
+
+	// definition on how many players are needed/allowed for runs in this category
 	Players struct {
 		Type  string
 		Value int
 	}
+
+	// whether or not this is a misc (fun) category
 	Miscellaneous bool
-	Links         []Link
+
+	// API links to related resources
+	Links []Link
 
 	// do not use this field directly, use the available methods
 	GameData interface{} `json:"game"`
@@ -47,13 +62,15 @@ func toCategoryCollection(data interface{}) *CategoryCollection {
 	return tmp
 }
 
+// categoryResponse models the actual API response from the server
 type categoryResponse struct {
+	// the one category contained in the response
 	Data Category
 }
 
-// CategoryById tries to fetch a single category, identified by its Id.
+// CategoryByID tries to fetch a single category, identified by its ID.
 // When an error is returned, the returned category is nil.
-func CategoryById(id string) (*Category, *Error) {
+func CategoryByID(id string) (*Category, *Error) {
 	return fetchCategory(request{"GET", "/categories/" + id, nil, nil, nil})
 }
 
@@ -107,6 +124,27 @@ func (c *Category) links() []Link {
 	return c.Links
 }
 
+// CategoryFilter represents the possible filtering options when fetching a list
+// of categories.
+type CategoryFilter struct {
+	Miscellaneous *bool
+}
+
+// applyToURL merged the filter into a URL.
+func (cf *CategoryFilter) applyToURL(u *url.URL) {
+	values := u.Query()
+
+	if cf.Miscellaneous != nil {
+		if *cf.Miscellaneous {
+			values.Set("miscellaneous", "yes")
+		} else {
+			values.Set("miscellaneous", "no")
+		}
+	}
+
+	u.RawQuery = values.Encode()
+}
+
 // CategoryCollection is one page of the entire category list. It consists of the
 // categories as well as some pagination information (like links to the next or
 // previous page).
@@ -127,27 +165,6 @@ func (cc *CategoryCollection) categories() []*Category {
 	}
 
 	return result
-}
-
-// CategoryFilter represents the possible filtering options when fetching a list
-// of categories.
-type CategoryFilter struct {
-	Miscellaneous *bool
-}
-
-// applyToURL merged the filter into a URL.
-func (cf *CategoryFilter) applyToURL(u *url.URL) {
-	values := u.Query()
-
-	if cf.Miscellaneous != nil {
-		if *cf.Miscellaneous {
-			values.Set("miscellaneous", "yes")
-		} else {
-			values.Set("miscellaneous", "no")
-		}
-	}
-
-	u.RawQuery = values.Encode()
 }
 
 // NextPage tries to follow the "next" link and retrieve the next page of
@@ -191,7 +208,7 @@ func fetchCategory(request request) (*Category, *Error) {
 // fetchCategoryLink tries to fetch a given link and interpret the response as
 // a single category. If the link is nil or the category could not be fetched,
 // nil is returned.
-func fetchCategoryLink(link *Link) *Category {
+func fetchCategoryLink(link requestable) *Category {
 	if link == nil {
 		return nil
 	}
@@ -216,7 +233,7 @@ func fetchCategories(request request) (*CategoryCollection, *Error) {
 // fetchCategoriesLink tries to fetch a given link and interpret the response as
 // a list of categories. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchCategoriesLink(link *Link, filter filter, sort *Sorting) *CategoryCollection {
+func fetchCategoriesLink(link requestable, filter filter, sort *Sorting) *CategoryCollection {
 	if link == nil {
 		return &CategoryCollection{}
 	}

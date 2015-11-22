@@ -2,13 +2,11 @@
 
 package srapi
 
-import (
-	"net/url"
-	"strconv"
-)
+import "net/url"
 
+// User represents a user.
 type User struct {
-	Id    string
+	ID    string
 	Names struct {
 		International string
 		Japanese      string
@@ -34,10 +32,12 @@ type User struct {
 	Links         []Link
 }
 
+// SocialLink is a minimal link that points to an external website.
 type SocialLink struct {
 	URI string
 }
 
+// Location is a country/region code with names.
 type Location struct {
 	Code  string
 	Names struct {
@@ -46,11 +46,15 @@ type Location struct {
 	}
 }
 
+// NameColor contains hex color codes for light and dark backgrounds, used
+// to display usernames on speedrun.com.
 type NameColor struct {
 	Light string
 	Dark  string
 }
 
+// toUser transforms a data blob to a User struct, if possible.
+// Returns nil if casting the data was not successful or if data was nil.
 func toUser(data interface{}) *User {
 	dest := User{}
 
@@ -61,6 +65,9 @@ func toUser(data interface{}) *User {
 	return nil
 }
 
+// toUserCollection transforms a data blob to a UserCollection.
+// If data is nil or casting was unsuccessful, an empty UserCollection
+// is returned.
 func toUserCollection(data interface{}) *UserCollection {
 	tmp := &UserCollection{}
 	recast(data, tmp)
@@ -68,204 +75,39 @@ func toUserCollection(data interface{}) *UserCollection {
 	return tmp
 }
 
+// userResponse models the actual API response from the server
 type userResponse struct {
+	// the one user contained in the response
 	Data User
 }
 
-func UserById(id string) (*User, *Error) {
+// UserByID tries to fetch a single user, identified by their ID.
+// When an error is returned, the returned user is nil.
+func UserByID(id string) (*User, *Error) {
 	return fetchUser(request{"GET", "/users/" + id, nil, nil, nil})
 }
 
-func (self *User) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
+// Runs fetches a list of runs done by the user, optionally filtered
+// and sorted. This function always returns a RunCollection.
+func (u *User) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	return fetchRunsLink(firstLink(u, "runs"), filter, sort)
 }
 
-func (self *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollection {
-	return fetchGamesLink(firstLink(self, "games"), filter, sort)
+// ModeratedGames fetches a list of games moderated by the user, optionally
+// filtered and sorted. This function always returns a GameCollection.
+func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollection {
+	return fetchGamesLink(firstLink(u, "games"), filter, sort)
 }
 
-// for the 'hasLinks' interface
-func (self *User) links() []Link {
-	return self.Links
-}
-
-type PersonalBest struct {
-	Rank int
-	Run  Run
-
-	// do not use this field directly, use the available methods
-	PlatformData interface{} `json:"platform"`
-
-	// do not use this field directly, use the available methods
-	RegionData interface{} `json:"region"`
-
-	// do not use this field directly, use the available methods
-	PlayersData interface{} `json:"players"`
-
-	// do not use this field directly, use the available methods
-	GameData interface{} `json:"game"`
-
-	// do not use this field directly, use the available methods
-	CategoryData interface{} `json:"category"`
-
-	// do not use this field directly, use the available methods
-	LevelData interface{} `json:"level"`
-}
-
-func (self *PersonalBest) Game() *Game {
-	return toGame(self.GameData)
-}
-
-func (self *PersonalBest) Category() *Category {
-	return toCategory(self.CategoryData)
-}
-
-func (self *PersonalBest) Level() *Level {
-	return toLevel(self.LevelData)
-}
-
-func (self *PersonalBest) Platform() *Platform {
-	if self.PlatformData == nil {
-		if len(self.Run.System.Platform) > 0 {
-			platform, _ := PlatformById(self.Run.System.Platform)
-			return platform
-		}
-
-		return nil
-	}
-
-	return toPlatform(self.PlatformData)
-}
-
-func (self *PersonalBest) Region() *Region {
-	if self.RegionData == nil {
-		if len(self.Run.System.Region) > 0 {
-			region, _ := RegionById(self.Run.System.Region)
-			return region
-		}
-
-		return nil
-	}
-
-	return toRegion(self.RegionData)
-}
-
-func (self *PersonalBest) Players() []*Player {
-	result := make([]*Player, 0)
-
-	switch asserted := self.PlayersData.(type) {
-	// list of simple links to users/guests, e.g. players=[{rel:..,id:...}, {...}]
-	case []interface{}:
-		tmp := make([]PlayerLink, 0)
-
-		if recast(asserted, &tmp) == nil {
-			for _, link := range tmp {
-				player := Player{}
-
-				switch link.Relation {
-				case "user":
-					user, err := fetchUser(link.request(nil, nil))
-					if err == nil {
-						player.User = user
-					}
-
-				case "guest":
-					guest, err := fetchGuest(link.request(nil, nil))
-					if err == nil {
-						player.Guest = guest
-					}
-				}
-
-				if player.User != nil || player.Guest != nil {
-					result = append(result, &player)
-				}
-			}
-		}
-
-	// sub-resource due to embeds, aka "{data:....}"
-	case map[string]interface{}:
-		tmp := playerCollection{}
-
-		if recast(asserted, &tmp) == nil {
-			// each element in tmp.Data has a rel that tells us whether we have a
-			// user or a guest
-			for _, playerProps := range tmp.Data {
-				rel, exists := playerProps["rel"]
-				if exists {
-					player := Player{}
-
-					switch rel {
-					case "user":
-						if user := toUser(playerProps); user != nil {
-							player.User = user
-						}
-
-					case "guest":
-						if guest := toGuest(playerProps); guest != nil {
-							player.Guest = guest
-						}
-					}
-
-					if player.User != nil || player.Guest != nil {
-						result = append(result, &player)
-					}
-				}
-			}
-		}
-	}
-
-	return result
-}
-
-func (self *PersonalBest) Examiner() *User {
-	return fetchUserLink(firstLink(&self.Run, "examiner"))
-}
-
-type personalBestResponse struct {
-	Data []PersonalBest
-}
-
-func (self *personalBestResponse) personalBests() []*PersonalBest {
-	result := make([]*PersonalBest, 0)
-
-	for idx := range self.Data {
-		result = append(result, &self.Data[idx])
-	}
-
-	return result
-}
-
-type PersonalBestFilter struct {
-	Top    int
-	Series string
-	Game   string
-}
-
-func (self *PersonalBestFilter) applyToURL(u *url.URL) {
-	values := u.Query()
-
-	if self.Top > 0 {
-		values.Set("top", strconv.Itoa(self.Top))
-	}
-
-	if len(self.Series) > 0 {
-		values.Set("series", self.Series)
-	}
-
-	if len(self.Game) > 0 {
-		values.Set("game", self.Game)
-	}
-
-	u.RawQuery = values.Encode()
-}
-
-func (self *User) PersonalBests(filter *PersonalBestFilter) []*PersonalBest {
-	link := firstLink(self, "personal-bests")
+// PersonalBests fetches a list of PBs by the user, optionally filtered and
+// sorted.
+func (u *User) PersonalBests(filter *PersonalBestFilter) []*PersonalBest {
+	link := firstLink(u, "personal-bests")
 	if link == nil {
 		return make([]*PersonalBest, 0)
 	}
 
-	tmp := personalBestResponse{}
+	tmp := personalBestsResponse{}
 	err := httpClient.do(link.request(filter, nil), &tmp)
 	if err != nil {
 		return make([]*PersonalBest, 0)
@@ -274,21 +116,13 @@ func (self *User) PersonalBests(filter *PersonalBestFilter) []*PersonalBest {
 	return tmp.personalBests()
 }
 
-type UserCollection struct {
-	Data       []User
-	Pagination Pagination
+// for the 'hasLinks' interface
+func (u *User) links() []Link {
+	return u.Links
 }
 
-func (self *UserCollection) users() []*User {
-	result := make([]*User, 0)
-
-	for idx := range self.Data {
-		result = append(result, &self.Data[idx])
-	}
-
-	return result
-}
-
+// UserFilter represents the possible filtering options when fetching a list
+// of users.
 type UserFilter struct {
 	Lookup        string
 	Name          string
@@ -298,57 +132,91 @@ type UserFilter struct {
 	SpeedRunsLive string
 }
 
-func (self *UserFilter) applyToURL(u *url.URL) {
+// applyToURL merged the filter into a URL.
+func (uf *UserFilter) applyToURL(u *url.URL) {
 	values := u.Query()
 
-	if len(self.Lookup) > 0 {
-		values.Set("lookup", self.Lookup)
+	if len(uf.Lookup) > 0 {
+		values.Set("lookup", uf.Lookup)
 	}
 
-	if len(self.Name) > 0 {
-		values.Set("name", self.Name)
+	if len(uf.Name) > 0 {
+		values.Set("name", uf.Name)
 	}
 
-	if len(self.Twitch) > 0 {
-		values.Set("twitch", self.Twitch)
+	if len(uf.Twitch) > 0 {
+		values.Set("twitch", uf.Twitch)
 	}
 
-	if len(self.Hitbox) > 0 {
-		values.Set("hitbox", self.Hitbox)
+	if len(uf.Hitbox) > 0 {
+		values.Set("hitbox", uf.Hitbox)
 	}
 
-	if len(self.Twitter) > 0 {
-		values.Set("twitter", self.Twitter)
+	if len(uf.Twitter) > 0 {
+		values.Set("twitter", uf.Twitter)
 	}
 
-	if len(self.SpeedRunsLive) > 0 {
-		values.Set("speedrunslive", self.SpeedRunsLive)
+	if len(uf.SpeedRunsLive) > 0 {
+		values.Set("speedrunslive", uf.SpeedRunsLive)
 	}
 
 	u.RawQuery = values.Encode()
 }
 
+// UserCollection is one page of the entire user list. It consists of the
+// users as well as some pagination information (like links to the next or
+// previous page).
+type UserCollection struct {
+	Data       []User
+	Pagination Pagination
+}
+
+// Users retrieves a collection of users from  speedrun.com. In most cases, you
+// will filter the game, as paging through *all* users takes A LOT of requests.
 func Users(f *UserFilter, s *Sorting, c *Cursor) (*UserCollection, *Error) {
 	return fetchUsers(request{"GET", "/users", f, s, c})
 }
 
-func (self *UserCollection) NextPage() (*UserCollection, *Error) {
-	return self.fetchLink("next")
+// users returns a list of pointers to the users; used for cases where there is
+// no pagination and the caller wants to return a flat slice of users instead of
+// a collection (which would be misleading, as collections imply pagination).
+func (uc *UserCollection) users() []*User {
+	var result []*User
+
+	for idx := range uc.Data {
+		result = append(result, &uc.Data[idx])
+	}
+
+	return result
 }
 
-func (self *UserCollection) PrevPage() (*UserCollection, *Error) {
-	return self.fetchLink("prev")
+// NextPage tries to follow the "next" link and retrieve the next page of
+// users. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (uc *UserCollection) NextPage() (*UserCollection, *Error) {
+	return uc.fetchLink("next")
 }
 
-func (self *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
-	next := firstLink(&self.Pagination, name)
+// PrevPage tries to follow the "prev" link and retrieve the previous page of
+// users. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (uc *UserCollection) PrevPage() (*UserCollection, *Error) {
+	return uc.fetchLink("prev")
+}
+
+// fetchLink tries to fetch a link, if it exists. If there is no such link, an
+// empty collection and an error is returned. Otherwise, the error is nil.
+func (uc *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
+	next := firstLink(&uc.Pagination, name)
 	if next == nil {
-		return nil, nil
+		return &UserCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
 	return fetchUsers(next.request(nil, nil))
 }
 
+// fetchUser fetches a single user from the network. If the request failed,
+// the returned user is nil. Otherwise, the error is nil.
 func fetchUser(request request) (*User, *Error) {
 	result := &userResponse{}
 
@@ -360,7 +228,10 @@ func fetchUser(request request) (*User, *Error) {
 	return &result.Data, nil
 }
 
-func fetchUserLink(link *Link) *User {
+// fetchUserLink tries to fetch a given link and interpret the response as
+// a single user. If the link is nil or the user could not be fetched,
+// nil is returned.
+func fetchUserLink(link requestable) *User {
 	if link == nil {
 		return nil
 	}
@@ -369,8 +240,8 @@ func fetchUserLink(link *Link) *User {
 	return user
 }
 
-// always returns a collection, even when an error is returned;
-// makes other code more monadic
+// fetchUsers fetches a list of users from the network. It always
+// returns a collection, even when an error is returned.
 func fetchUsers(request request) (*UserCollection, *Error) {
 	result := &UserCollection{}
 
@@ -380,13 +251,4 @@ func fetchUsers(request request) (*UserCollection, *Error) {
 	}
 
 	return result, nil
-}
-
-func fetchUsersLink(link *Link, filter filter, sort *Sorting) *UserCollection {
-	if link == nil {
-		return &UserCollection{}
-	}
-
-	collection, _ := fetchUsers(link.request(filter, sort))
-	return collection
 }

@@ -2,12 +2,20 @@
 
 package srapi
 
+// Region represents a geographic region.
 type Region struct {
-	Id    string
-	Name  string
+	// the unique ID
+	ID string
+
+	// the name of the region
+	Name string
+
+	// API links to related resources
 	Links []Link
 }
 
+// toRegion transforms a data blob to a Region struct, if possible.
+// Returns nil if casting the data was not successful or if data was nil.
 func toRegion(data interface{}) *Region {
 	dest := Region{}
 
@@ -18,6 +26,9 @@ func toRegion(data interface{}) *Region {
 	return nil
 }
 
+// toRegionCollection transforms a data blob to a RegionCollection.
+// If data is nil or casting was unsuccessful, an empty RegionCollection
+// is returned.
 func toRegionCollection(data interface{}) *RegionCollection {
 	tmp := &RegionCollection{}
 	recast(data, tmp)
@@ -25,65 +36,88 @@ func toRegionCollection(data interface{}) *RegionCollection {
 	return tmp
 }
 
-// TODO: Maybe wrap this "data" element away in the HTTP client when it knows
-// that we fetch one single object.
+// regionResponse models the actual API response from the server
 type regionResponse struct {
+	// the one region contained in the response
 	Data Region
 }
 
-func RegionById(id string) (*Region, *Error) {
+// RegionByID tries to fetch a single region, identified by its ID.
+// When an error is returned, the returned region is nil.
+func RegionByID(id string) (*Region, *Error) {
 	return fetchRegion(request{"GET", "/regions/" + id, nil, nil, nil})
 }
 
-func (self *Region) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
+// Runs fetches a list of runs done in the region, optionally filtered and
+// sorted. This function always returns a RunCollection.
+func (r *Region) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	return fetchRunsLink(firstLink(r, "runs"), filter, sort)
 }
 
-func (self *Region) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	return fetchGamesLink(firstLink(self, "games"), filter, sort)
+// Games fetches a list of games available in the region, optionally filtered
+// and sorted. This function always returns a GameCollection.
+func (r *Region) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+	return fetchGamesLink(firstLink(r, "games"), filter, sort)
 }
 
 // for the 'hasLinks' interface
-func (self *Region) links() []Link {
-	return self.Links
+func (r *Region) links() []Link {
+	return r.Links
 }
 
+// RegionCollection is one page of a region list. It consists of the regions
+// as well as some pagination information (like links to the next or previous page).
 type RegionCollection struct {
 	Data       []Region
 	Pagination Pagination
 }
 
+// Regions retrieves a collection of regions
 func Regions(s *Sorting, c *Cursor) (*RegionCollection, *Error) {
 	return fetchRegions(request{"GET", "/regions", nil, s, c})
 }
 
-func (self *RegionCollection) regions() []*Region {
-	result := make([]*Region, 0)
+// regions returns a list of pointers to the regions; used for cases where
+// there is no pagination and the caller wants to return a flat slice of
+// regions instead of a collection (which would be misleading, as collections
+// imply pagination).
+func (rc *RegionCollection) regions() []*Region {
+	var result []*Region
 
-	for idx := range self.Data {
-		result = append(result, &self.Data[idx])
+	for idx := range rc.Data {
+		result = append(result, &rc.Data[idx])
 	}
 
 	return result
 }
 
-func (self *RegionCollection) NextPage() (*RegionCollection, *Error) {
-	return self.fetchLink("next")
+// NextPage tries to follow the "next" link and retrieve the next page of
+// regions. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (rc *RegionCollection) NextPage() (*RegionCollection, *Error) {
+	return rc.fetchLink("next")
 }
 
-func (self *RegionCollection) PrevPage() (*RegionCollection, *Error) {
-	return self.fetchLink("prev")
+// PrevPage tries to follow the "prev" link and retrieve the previous page of
+// regions. If there is no such link, an empty collection and an error
+// is returned. Otherwise, the error is nil.
+func (rc *RegionCollection) PrevPage() (*RegionCollection, *Error) {
+	return rc.fetchLink("prev")
 }
 
-func (self *RegionCollection) fetchLink(name string) (*RegionCollection, *Error) {
-	next := firstLink(&self.Pagination, name)
+// fetchLink tries to fetch a link, if it exists. If there is no such link, an
+// empty collection and an error is returned. Otherwise, the error is nil.
+func (rc *RegionCollection) fetchLink(name string) (*RegionCollection, *Error) {
+	next := firstLink(&rc.Pagination, name)
 	if next == nil {
-		return nil, nil
+		return &RegionCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
 	return fetchRegions(next.request(nil, nil))
 }
 
+// fetchRegion fetches a single region from the network. If the request failed,
+// the returned region is nil. Otherwise, the error is nil.
 func fetchRegion(request request) (*Region, *Error) {
 	result := &regionResponse{}
 
@@ -95,17 +129,8 @@ func fetchRegion(request request) (*Region, *Error) {
 	return &result.Data, nil
 }
 
-func fetchRegionLink(link *Link) *Region {
-	if link == nil {
-		return nil
-	}
-
-	region, _ := fetchRegion(link.request(nil, nil))
-	return region
-}
-
-// always returns a collection, even when an error is returned;
-// makes other code more monadic
+// fetchRegions fetches a list of regions from the network. It always
+// returns a collection, even when an error is returned.
 func fetchRegions(request request) (*RegionCollection, *Error) {
 	result := &RegionCollection{}
 
@@ -115,13 +140,4 @@ func fetchRegions(request request) (*RegionCollection, *Error) {
 	}
 
 	return result, nil
-}
-
-func fetchRegionsLink(link *Link, filter filter, sort *Sorting) *RegionCollection {
-	if link == nil {
-		return &RegionCollection{}
-	}
-
-	collection, _ := fetchRegions(link.request(filter, sort))
-	return collection
 }

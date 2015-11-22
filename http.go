@@ -9,39 +9,74 @@ import (
 	"net/url"
 )
 
+// ErrorBadJSON represents an invalid response from the API server, usually due to
+// server-side downtimes or bugs.
 const ErrorBadJSON = 900
+
+// ErrorNetwork represents connection timeouts and other network issues.
 const ErrorNetwork = 901
+
+// ErrorBadURL represents the unlikely case of trying to fetch an invalid URL.
+// Except for bugs in this package, this should never occur.
 const ErrorBadURL = 902
+
+// ErrorBadLogic represents a programmer mistake, like trying to get a leaderboard
+// without specifying the game and category.
 const ErrorBadLogic = 903
+
+// ErrorNoSuchLink represents the case when the package wants to follow a link
+// in the resource which is suddenly not present. As the code relies on links to
+// move around, this is bad.
 const ErrorNoSuchLink = 904
 
-const BaseUrl = "http://www.speedrun.com/api/v1"
+// BaseURL is the base URL for all API calls.
+const BaseURL = "http://www.speedrun.com/api/v1"
 
+// our http client, initialized by init
 var httpClient *apiClient
 
+// initialize the httpClient
 func init() {
 	httpClient = &apiClient{
-		baseUrl: BaseUrl,
+		baseURL: BaseURL,
 		client:  &http.Client{},
 	}
 }
 
+// request represents all options relevant for making an actual HTTP request.
+// These fields are mapped to a http.Request when performing a request.
 type request struct {
-	method  string
-	url     string
-	filter  filter
+	// HTTP method, like "GET"
+	method string
+
+	// the URL, relative to BaseURL
+	url string
+
+	// optional filter (will be applied to the query string)
+	filter filter
+
+	// optional sorting (will be applied to the query string)
 	sorting *Sorting
-	cursor  *Cursor
+
+	// optional cursor (will be applied to the query string)
+	cursor *Cursor
 }
 
+// apiClient is our helper to not pollute the package-wide variables
 type apiClient struct {
-	baseUrl string
-	client  *http.Client
+	// the effective base url
+	baseURL string
+
+	// the underlying, concurrency-safe HTTP client
+	client *http.Client
 }
 
-func (self *apiClient) do(request request, dst interface{}) *Error {
+// do performs a HTTP request by transforming the request and applying the
+// filters. The data is parsed as JSON and unmarshaled into dst. An error is
+// returned when the request failed or when invalid JSON was received.
+func (ac *apiClient) do(request request, dst interface{}) *Error {
 	// prepare the actual net.http.Request
-	u, err := url.Parse(self.baseUrl + request.url)
+	u, err := url.Parse(ac.baseURL + request.url)
 	if err != nil {
 		return failedRequest(request, nil, err, ErrorBadURL)
 	}
@@ -64,7 +99,7 @@ func (self *apiClient) do(request request, dst interface{}) *Error {
 	}
 
 	// hit the network
-	response, err := self.client.Do(&req)
+	response, err := ac.client.Do(&req)
 	if err != nil {
 		return failedRequest(request, nil, err, ErrorNetwork)
 	}
@@ -86,17 +121,30 @@ func (self *apiClient) do(request request, dst interface{}) *Error {
 	return failedRequest(request, response, nil, 0)
 }
 
+// Error is an error that occured in this package. It contains basic information
+// about the failed request (if any, some errors are independent of requests)
+// and about what failed.
 type Error struct {
-	Method  string
-	URL     string
-	Status  int
+	// the HTTP method of the request that failed, empty if no request involved
+	Method string
+
+	// the URL that failed, empty if no request involved
+	URL string
+
+	// the HTTP status code, set to one of the Error* constants of this package for
+	// internal errors
+	Status int
+
+	// a description of what failed
 	Message string
 }
 
-func (self *Error) Error() string {
-	return fmt.Sprintf("[%d] %s (%s %s)", self.Status, self.Message, self.Method, self.URL)
+// Error returns a string including all details of the Error struct.
+func (e *Error) Error() string {
+	return fmt.Sprintf("[%d] %s (%s %s)", e.Status, e.Message, e.Method, e.URL)
 }
 
+// failedRequest is a helper to assemble a Error struct when a request failed.
 func failedRequest(request request, response *http.Response, previous error, errorCode int) *Error {
 	// build an incomplete error struct
 	result := &Error{

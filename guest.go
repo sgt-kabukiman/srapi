@@ -4,11 +4,18 @@ package srapi
 
 import "net/url"
 
+// Guest models a guest on speedrun.com, i.e. someone who is not yet registred but
+// already part of the leaderboard.
 type Guest struct {
-	Name  string
+	// the guest's name
+	Name string
+
+	// API links to related resources
 	Links []Link
 }
 
+// toGuest transforms a data blob to a Guest struct, if possible.
+// Returns nil if casting the data was not successful or if data was nil.
 func toGuest(data interface{}) *Guest {
 	dest := Guest{}
 
@@ -19,23 +26,31 @@ func toGuest(data interface{}) *Guest {
 	return nil
 }
 
+// guestResponse models the actual API response from the server
 type guestResponse struct {
+	// the one guest contained in the response
 	Data Guest
 }
 
-func GuestById(name string) (*Guest, *Error) {
+// GuestByName tries to fetch a single guest, identified by their name.
+// When an error is returned, the returned guest is nil.
+func GuestByName(name string) (*Guest, *Error) {
 	return fetchGuest(request{"GET", "/guests/" + url.QueryEscape(name), nil, nil, nil})
 }
 
-func (self *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
+// Runs fetches a list of runs done by the guest, optionally filtered and sorted.
+// This function always returns a RunCollection.
+func (g *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	return fetchRunsLink(firstLink(g, "runs"), filter, sort)
 }
 
 // for the 'hasLinks' interface
-func (self *Guest) links() []Link {
-	return self.Links
+func (g *Guest) links() []Link {
+	return g.Links
 }
 
+// fetchGuest fetches a single guest from the network. If the request failed,
+// the returned guest is nil. Otherwise, the error is nil.
 func fetchGuest(request request) (*Guest, *Error) {
 	result := &guestResponse{}
 
@@ -47,7 +62,10 @@ func fetchGuest(request request) (*Guest, *Error) {
 	return &result.Data, nil
 }
 
-func fetchGuestLink(link *Link) *Guest {
+// fetchGuestLink tries to fetch a given link and interpret the response as
+// a single guest. If the link is nil or the guest could not be fetched,
+// nil is returned.
+func fetchGuestLink(link requestable) *Guest {
 	if link == nil {
 		return nil
 	}
