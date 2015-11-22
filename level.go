@@ -24,6 +24,13 @@ func toLevel(data interface{}) *Level {
 	return nil
 }
 
+func toLevelCollection(data interface{}) *LevelCollection {
+	tmp := &LevelCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type levelResponse struct {
 	Data Level
 }
@@ -32,95 +39,44 @@ func LevelById(id string) (*Level, *Error) {
 	return fetchLevel(request{"GET", "/levels/" + id, nil, nil, nil})
 }
 
-func fetchLevel(request request) (*Level, *Error) {
-	result := &levelResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func (self *Level) Game() *Game {
-	link := firstLink(self, "game")
-	if link == nil {
-		return nil
-	}
-
-	game, _ := fetchGame(link.request(nil, nil))
-	return game
+	return fetchGameLink(firstLink(self, "game"))
 }
 
 func (self *Level) Categories(filter *CategoryFilter, sort *Sorting) []*Category {
+	var collection *CategoryCollection
+
 	if self.CategoriesData == nil {
-		link := firstLink(self, "categories")
-		if link == nil {
-			return nil
-		}
-
-		collection, _ := fetchCategories(link.request(filter, sort))
-
-		return collection.categories()
+		collection = fetchCategoriesLink(firstLink(self, "categories"), filter, sort)
+	} else {
+		collection = toCategoryCollection(self.CategoriesData)
 	}
 
-	tmp := CategoryCollection{}
-	if recast(self.CategoriesData, &tmp) == nil {
-		return tmp.categories()
-	}
-
-	return make([]*Category, 0)
+	return collection.categories()
 }
 
 func (self *Level) Variables(sort *Sorting) []*Variable {
+	var collection *VariableCollection
+
 	if self.VariablesData == nil {
-		link := firstLink(self, "variables")
-		if link == nil {
-			return nil
-		}
-
-		collection, _ := fetchVariables(link.request(nil, sort))
-
-		return collection.variables()
+		collection = fetchVariablesLink(firstLink(self, "variables"), nil, sort)
+	} else {
+		collection = toVariableCollection(self.VariablesData)
 	}
 
-	tmp := VariableCollection{}
-	if recast(self.VariablesData, &tmp) == nil {
-		return tmp.variables()
-	}
-
-	return make([]*Variable, 0)
+	return collection.variables()
 }
 
 func (self *Level) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
-	link := firstLink(self, "leaderboard")
-	if link == nil {
-		return nil
-	}
-
-	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
-	return leaderboard
+	return fetchLeaderboardLink(firstLink(self, "leaderboard"), options)
 }
 
 func (self *Level) Records(filter *LeaderboardFilter) *LeaderboardCollection {
-	link := firstLink(self, "records")
-	if link == nil {
-		return nil
-	}
-
-	leaderboards, _ := fetchLeaderboards(link.request(filter, nil))
-	return leaderboards
+	return fetchLeaderboardsLink(firstLink(self, "records"), filter, nil)
 }
 
 func (self *Level) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -160,6 +116,26 @@ func (self *LevelCollection) fetchLink(name string) (*LevelCollection, *Error) {
 	return fetchLevels(next.request(nil, nil))
 }
 
+func fetchLevel(request request) (*Level, *Error) {
+	result := &levelResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchLevelLink(link *Link) *Level {
+	if link == nil {
+		return nil
+	}
+
+	level, _ := fetchLevel(link.request(nil, nil))
+	return level
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchLevels(request request) (*LevelCollection, *Error) {
@@ -171,4 +147,13 @@ func fetchLevels(request request) (*LevelCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchLevelsLink(link *Link, filter filter, sort *Sorting) *LevelCollection {
+	if link == nil {
+		return &LevelCollection{}
+	}
+
+	collection, _ := fetchLevels(link.request(filter, sort))
+	return collection
 }

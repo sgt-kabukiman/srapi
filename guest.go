@@ -25,6 +25,15 @@ func GuestById(name string) (*Guest, *Error) {
 	return fetchGuest(request{"GET", "/guests/" + url.QueryEscape(name), nil, nil, nil})
 }
 
+func (self *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
+}
+
+// for the 'hasLinks' interface
+func (self *Guest) links() []Link {
+	return self.Links
+}
+
 func fetchGuest(request request) (*Guest, *Error) {
 	result := &guestResponse{}
 
@@ -36,17 +45,11 @@ func fetchGuest(request request) (*Guest, *Error) {
 	return &result.Data, nil
 }
 
-func (self *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
+func fetchGuestLink(link *Link) *Guest {
 	if link == nil {
 		return nil
 	}
 
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
-}
-
-// for the 'hasLinks' interface
-func (self *Guest) links() []Link {
-	return self.Links
+	guest, _ := fetchGuest(link.request(nil, nil))
+	return guest
 }

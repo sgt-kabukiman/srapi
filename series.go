@@ -17,6 +17,13 @@ type Series struct {
 	ModeratorsData interface{} `json:"moderators"`
 }
 
+func toSeriesCollection(data interface{}) *SeriesCollection {
+	tmp := &SeriesCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type seriesResponse struct {
 	Data Series
 }
@@ -25,29 +32,12 @@ func SeriesById(id string) (*Series, *Error) {
 	return fetchOneSeries(request{"GET", "/series/" + id, nil, nil, nil})
 }
 
-func fetchOneSeries(request request) (*Series, *Error) {
-	result := &seriesResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func SeriesByAbbreviation(abbrev string) (*Series, *Error) {
 	return SeriesById(abbrev)
 }
 
 func (self *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	link := firstLink(self, "games")
-	if link == nil {
-		return nil
-	}
-
-	collection, _ := fetchGames(link.request(filter, sort))
-	return collection
+	return fetchGamesLink(firstLink(self, "games"), filter, sort)
 }
 
 func (self *Series) ModeratorMap() map[string]GameModLevel {
@@ -86,13 +76,7 @@ func (self *Series) Moderators() []*User {
 		return result
 	}
 
-	// maybe we got a list of embedded users
-	tmp := UserCollection{}
-	if recast(self.ModeratorsData, &tmp) == nil {
-		return tmp.users()
-	}
-
-	return make([]*User, 0)
+	return toUserCollection(self.ModeratorsData).users()
 }
 
 // for the 'hasLinks' interface
@@ -160,6 +144,26 @@ func (self *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error)
 	return fetchManySeries(next.request(nil, nil))
 }
 
+func fetchOneSeries(request request) (*Series, *Error) {
+	result := &seriesResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchOneSeriesLink(link *Link) *Series {
+	if link == nil {
+		return nil
+	}
+
+	series, _ := fetchOneSeries(link.request(nil, nil))
+	return series
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchManySeries(request request) (*SeriesCollection, *Error) {
@@ -171,4 +175,13 @@ func fetchManySeries(request request) (*SeriesCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchManySeriesLink(link *Link, filter filter, sort *Sorting) *SeriesCollection {
+	if link == nil {
+		return &SeriesCollection{}
+	}
+
+	collection, _ := fetchManySeries(link.request(filter, sort))
+	return collection
 }

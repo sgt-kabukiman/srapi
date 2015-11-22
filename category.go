@@ -32,6 +32,13 @@ func toCategory(data interface{}) *Category {
 	return nil
 }
 
+func toCategoryCollection(data interface{}) *CategoryCollection {
+	tmp := &CategoryCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type categoryResponse struct {
 	Data Category
 }
@@ -40,81 +47,36 @@ func CategoryById(id string) (*Category, *Error) {
 	return fetchCategory(request{"GET", "/categories/" + id, nil, nil, nil})
 }
 
-func fetchCategory(request request) (*Category, *Error) {
-	result := &categoryResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func (self *Category) Game() *Game {
 	if self.GameData == nil {
-		link := firstLink(self, "game")
-		if link == nil {
-			return nil
-		}
-
-		game, _ := fetchGame(link.request(nil, nil))
-		return game
+		return fetchGameLink(firstLink(self, "game"))
 	}
 
 	return toGame(self.GameData)
 }
 
-func (self *Category) Variables(s *Sorting) []*Variable {
+func (self *Category) Variables(sort *Sorting) []*Variable {
+	var collection *VariableCollection
+
 	if self.VariablesData == nil {
-		link := firstLink(self, "variables")
-		if link == nil {
-			return nil
-		}
-
-		collection, _ := fetchVariables(link.request(nil, s))
-
-		return collection.variables()
+		collection = fetchVariablesLink(firstLink(self, "variables"), nil, sort)
+	} else {
+		collection = toVariableCollection(self.VariablesData)
 	}
 
-	// convert generic mess into JSON
-	tmp := VariableCollection{}
-
-	if recast(self.VariablesData, &tmp) == nil {
-		return tmp.variables()
-	}
-
-	return make([]*Variable, 0)
+	return collection.variables()
 }
 
 func (self *Category) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
-	link := firstLink(self, "leaderboard")
-	if link == nil {
-		return nil
-	}
-
-	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
-	return leaderboard
+	return fetchLeaderboardLink(firstLink(self, "leaderboard"), options)
 }
 
 func (self *Category) Records(filter *LeaderboardFilter) *LeaderboardCollection {
-	link := firstLink(self, "records")
-	if link == nil {
-		return nil
-	}
-
-	leaderboards, _ := fetchLeaderboards(link.request(filter, nil))
-	return leaderboards
+	return fetchLeaderboardsLink(firstLink(self, "records"), filter, nil)
 }
 
 func (self *Category) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "records"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -172,6 +134,26 @@ func (self *CategoryCollection) fetchLink(name string) (*CategoryCollection, *Er
 	return fetchCategories(next.request(nil, nil))
 }
 
+func fetchCategory(request request) (*Category, *Error) {
+	result := &categoryResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchCategoryLink(link *Link) *Category {
+	if link == nil {
+		return nil
+	}
+
+	category, _ := fetchCategory(link.request(nil, nil))
+	return category
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchCategories(request request) (*CategoryCollection, *Error) {
@@ -183,4 +165,13 @@ func fetchCategories(request request) (*CategoryCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchCategoriesLink(link *Link, filter filter, sort *Sorting) *CategoryCollection {
+	if link == nil {
+		return &CategoryCollection{}
+	}
+
+	collection, _ := fetchCategories(link.request(filter, sort))
+	return collection
 }

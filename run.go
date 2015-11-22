@@ -51,23 +51,19 @@ type Run struct {
 	LevelData interface{} `json:"level"`
 }
 
+func toRunCollection(data interface{}) *RunCollection {
+	tmp := &RunCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type runResponse struct {
 	Data Run
 }
 
 func RunById(id string) (*Run, *Error) {
 	return fetchRun(request{"GET", "/runs/" + id, nil, nil, nil})
-}
-
-func fetchRun(request request) (*Run, *Error) {
-	result := &runResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
 }
 
 func (self *Run) Game() *Game {
@@ -183,15 +179,13 @@ func (self *Run) Players() []*Player {
 
 					switch rel {
 					case "user":
-						user := User{}
-						if recast(playerProps, &user) == nil {
-							player.User = &user
+						if user := toUser(playerProps); user != nil {
+							player.User = user
 						}
 
 					case "guest":
-						guest := Guest{}
-						if recast(playerProps, &guest) == nil {
-							player.Guest = &guest
+						if guest := toGuest(playerProps); guest != nil {
+							player.Guest = guest
 						}
 					}
 
@@ -207,13 +201,7 @@ func (self *Run) Players() []*Player {
 }
 
 func (self *Run) Examiner() *User {
-	link := firstLink(self, "examiner")
-	if link == nil {
-		return nil
-	}
-
-	examiner, _ := fetchUser(link.request(nil, nil))
-	return examiner
+	return fetchUserLink(firstLink(self, "examiner"))
 }
 
 // for the 'hasLinks' interface
@@ -320,6 +308,17 @@ func (self *RunCollection) fetchLink(name string) (*RunCollection, *Error) {
 	return fetchRuns(next.request(nil, nil))
 }
 
+func fetchRun(request request) (*Run, *Error) {
+	result := &runResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchRuns(request request) (*RunCollection, *Error) {
@@ -331,4 +330,13 @@ func fetchRuns(request request) (*RunCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchRunsLink(link *Link, filter filter, sort *Sorting) *RunCollection {
+	if link == nil {
+		return &RunCollection{}
+	}
+
+	collection, _ := fetchRuns(link.request(filter, sort))
+	return collection
 }

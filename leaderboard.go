@@ -38,6 +38,13 @@ type Leaderboard struct {
 	VariablesData interface{} `json:"variables"`
 }
 
+func toLeaderboardCollection(data interface{}) *LeaderboardCollection {
+	tmp := &LeaderboardCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type RankedRun struct {
 	Run
 
@@ -84,17 +91,6 @@ func LevelLeaderboard(game *Game, cat *Category, level *Level, options *Leaderbo
 	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.Id + "/level/" + level.Id + "/" + cat.Id, options, nil, nil})
 }
 
-func fetchLeaderboard(request request) (*Leaderboard, *Error) {
-	result := &leaderboardResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func (self *Leaderboard) Game() *Game {
 	// we only have the game ID at hand
 	asserted, okay := self.GameData.(string)
@@ -133,31 +129,11 @@ func (self *Leaderboard) Level() *Level {
 }
 
 func (self *Leaderboard) Platforms() []*Platform {
-	if self.PlatformsData == nil {
-		// TODO: Walk through all runs, collect platform IDs and fetch them
-		return make([]*Platform, 0)
-	}
-
-	tmp := PlatformCollection{}
-	if recast(self.PlatformsData, &tmp) == nil {
-		return tmp.platforms()
-	}
-
-	return make([]*Platform, 0)
+	return toPlatformCollection(self.PlatformsData).platforms()
 }
 
 func (self *Leaderboard) Regions() []*Region {
-	if self.RegionsData == nil {
-		// TODO: Walk through all runs, collect region IDs and fetch them
-		return make([]*Region, 0)
-	}
-
-	tmp := RegionCollection{}
-	if recast(self.RegionsData, &tmp) == nil {
-		return tmp.regions()
-	}
-
-	return make([]*Region, 0)
+	return toRegionCollection(self.RegionsData).regions()
 }
 
 func (self *Leaderboard) Players() []*Player {
@@ -180,15 +156,13 @@ func (self *Leaderboard) Players() []*Player {
 
 				switch rel {
 				case "user":
-					user := User{}
-					if recast(playerProps, &user) == nil {
-						player.User = &user
+					if user := toUser(playerProps); user != nil {
+						player.User = user
 					}
 
 				case "guest":
-					guest := Guest{}
-					if recast(playerProps, &guest) == nil {
-						player.Guest = &guest
+					if guest := toGuest(playerProps); guest != nil {
+						player.Guest = guest
 					}
 				}
 
@@ -203,16 +177,7 @@ func (self *Leaderboard) Players() []*Player {
 }
 
 func (self *Leaderboard) Variables() []*Variable {
-	if self.VariablesData == nil {
-		return make([]*Variable, 0)
-	}
-
-	tmp := VariableCollection{}
-	if recast(self.VariablesData, &tmp) == nil {
-		return tmp.variables()
-	}
-
-	return make([]*Variable, 0)
+	return toVariableCollection(self.VariablesData).variables()
 }
 
 // for the 'hasLinks' interface
@@ -336,6 +301,26 @@ func (self *LeaderboardCollection) fetchLink(name string) (*LeaderboardCollectio
 	return fetchLeaderboards(next.request(nil, nil))
 }
 
+func fetchLeaderboard(request request) (*Leaderboard, *Error) {
+	result := &leaderboardResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchLeaderboardLink(link *Link, options *LeaderboardOptions) *Leaderboard {
+	if link == nil {
+		return nil
+	}
+
+	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
+	return leaderboard
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchLeaderboards(request request) (*LeaderboardCollection, *Error) {
@@ -347,4 +332,13 @@ func fetchLeaderboards(request request) (*LeaderboardCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchLeaderboardsLink(link *Link, filter filter, sort *Sorting) *LeaderboardCollection {
+	if link == nil {
+		return &LeaderboardCollection{}
+	}
+
+	collection, _ := fetchLeaderboards(link.request(filter, sort))
+	return collection
 }

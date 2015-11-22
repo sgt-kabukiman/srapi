@@ -31,6 +31,13 @@ func toVariable(data interface{}) *Variable {
 	return nil
 }
 
+func toVariableCollection(data interface{}) *VariableCollection {
+	tmp := &VariableCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type variableResponse struct {
 	Data Variable
 }
@@ -39,35 +46,12 @@ func VariableById(id string) (*Variable, *Error) {
 	return fetchVariable(request{"GET", "/variables/" + id, nil, nil, nil})
 }
 
-func fetchVariable(request request) (*Variable, *Error) {
-	result := &variableResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func (self *Variable) Game() *Game {
-	link := firstLink(self, "game")
-	if link == nil {
-		return nil
-	}
-
-	game, _ := fetchGame(link.request(nil, nil))
-	return game
+	return fetchGameLink(firstLink(self, "game"))
 }
 
 func (self *Variable) Category() *Category {
-	link := firstLink(self, "category")
-	if link == nil {
-		return nil
-	}
-
-	category, _ := fetchCategory(link.request(nil, nil))
-	return category
+	return fetchCategoryLink(firstLink(self, "category"))
 }
 
 // for the 'hasLinks' interface
@@ -107,6 +91,17 @@ func (self *VariableCollection) fetchLink(name string) (*VariableCollection, *Er
 	return fetchVariables(next.request(nil, nil))
 }
 
+func fetchVariable(request request) (*Variable, *Error) {
+	result := &variableResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchVariables(request request) (*VariableCollection, *Error) {
@@ -118,4 +113,13 @@ func fetchVariables(request request) (*VariableCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchVariablesLink(link *Link, filter filter, sort *Sorting) *VariableCollection {
+	if link == nil {
+		return &VariableCollection{}
+	}
+
+	collection, _ := fetchVariables(link.request(filter, sort))
+	return collection
 }

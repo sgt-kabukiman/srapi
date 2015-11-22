@@ -56,6 +56,13 @@ func toGame(data interface{}) *Game {
 	return nil
 }
 
+func toGameCollection(data interface{}) *GameCollection {
+	tmp := &GameCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type gameResponse struct {
 	Data Game
 }
@@ -64,29 +71,12 @@ func GameById(id string) (*Game, *Error) {
 	return fetchGame(request{"GET", "/games/" + id, nil, nil, nil})
 }
 
-func fetchGame(request request) (*Game, *Error) {
-	result := &gameResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func GameByAbbreviation(abbrev string) (*Game, *Error) {
 	return GameById(abbrev)
 }
 
 func (self *Game) Series() *Series {
-	link := firstLink(self, "series")
-	if link == nil {
-		return nil
-	}
-
-	series, _ := fetchOneSeries(link.request(nil, nil))
-	return series
+	return fetchOneSeriesLink(firstLink(self, "series"))
 }
 
 func (self *Game) PlatformIds() []string {
@@ -128,10 +118,7 @@ func (self *Game) Platforms() []*Platform {
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		tmp := PlatformCollection{}
-		if recast(asserted, &tmp) == nil {
-			return tmp.platforms()
-		}
+		return toPlatformCollection(asserted).platforms()
 	}
 
 	return result
@@ -176,80 +163,50 @@ func (self *Game) Regions() []*Region {
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		tmp := RegionCollection{}
-		if recast(asserted, &tmp) == nil {
-			return tmp.regions()
-		}
+		return toRegionCollection(asserted).regions()
 	}
 
 	return result
 }
 
 func (self *Game) Categories(filter *CategoryFilter, sort *Sorting) []*Category {
-	if self.CategoriesData == nil {
-		link := firstLink(self, "categories")
-		if link == nil {
-			return nil
-		}
+	var collection *CategoryCollection
 
-		collection, _ := fetchCategories(link.request(filter, sort))
-		return collection.categories()
+	if self.VariablesData == nil {
+		collection = fetchCategoriesLink(firstLink(self, "categories"), filter, sort)
+	} else {
+		collection = toCategoryCollection(self.CategoriesData)
 	}
 
-	tmp := CategoryCollection{}
-	if recast(self.CategoriesData, &tmp) == nil {
-		return tmp.categories()
-	}
-
-	return make([]*Category, 0)
+	return collection.categories()
 }
 
 func (self *Game) Levels(sort *Sorting) []*Level {
-	if self.LevelsData == nil {
-		link := firstLink(self, "levels")
-		if link == nil {
-			return nil
-		}
+	var collection *LevelCollection
 
-		collection, _ := fetchLevels(link.request(nil, sort))
-		return collection.levels()
+	if self.VariablesData == nil {
+		collection = fetchLevelsLink(firstLink(self, "levels"), nil, sort)
+	} else {
+		collection = toLevelCollection(self.CategoriesData)
 	}
 
-	tmp := LevelCollection{}
-	if recast(self.LevelsData, &tmp) == nil {
-		return tmp.levels()
-	}
-
-	return make([]*Level, 0)
+	return collection.levels()
 }
 
 func (self *Game) Variables(sort *Sorting) []*Variable {
+	var collection *VariableCollection
+
 	if self.VariablesData == nil {
-		link := firstLink(self, "variables")
-		if link == nil {
-			return nil
-		}
-
-		collection, _ := fetchVariables(link.request(nil, sort))
-		return collection.variables()
+		collection = fetchVariablesLink(firstLink(self, "variables"), nil, sort)
+	} else {
+		collection = toVariableCollection(self.VariablesData)
 	}
 
-	tmp := VariableCollection{}
-	if recast(self.VariablesData, &tmp) == nil {
-		return tmp.variables()
-	}
-
-	return make([]*Variable, 0)
+	return collection.variables()
 }
 
 func (self *Game) Romhacks() *GameCollection {
-	link := firstLink(self, "romhacks")
-	if link == nil {
-		return nil
-	}
-
-	collection, _ := fetchGames(link.request(nil, nil))
-	return collection
+	return fetchGamesLink(firstLink(self, "romhacks"), nil, nil)
 }
 
 func (self *Game) ModeratorMap() map[string]GameModLevel {
@@ -289,42 +246,19 @@ func (self *Game) Moderators() []*User {
 	}
 
 	// maybe we got a list of embedded users
-	tmp := UserCollection{}
-	if recast(self.ModeratorsData, &tmp) == nil {
-		return tmp.users()
-	}
-
-	return make([]*User, 0)
+	return toUserCollection(self.ModeratorsData).users()
 }
 
 func (self *Game) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
-	link := firstLink(self, "leaderboard")
-	if link == nil {
-		return nil
-	}
-
-	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
-	return leaderboard
+	return fetchLeaderboardLink(firstLink(self, "leaderboard"), options)
 }
 
 func (self *Game) Records(filter *LeaderboardFilter) *LeaderboardCollection {
-	link := firstLink(self, "records")
-	if link == nil {
-		return nil
-	}
-
-	leaderboards, _ := fetchLeaderboards(link.request(filter, nil))
-	return leaderboards
+	return fetchLeaderboardsLink(firstLink(self, "records"), filter, nil)
 }
 
 func (self *Game) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -416,6 +350,26 @@ func (self *GameCollection) fetchLink(name string) (*GameCollection, *Error) {
 	return fetchGames(next.request(nil, nil))
 }
 
+func fetchGame(request request) (*Game, *Error) {
+	result := &gameResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchGameLink(link *Link) *Game {
+	if link == nil {
+		return nil
+	}
+
+	game, _ := fetchGame(link.request(nil, nil))
+	return game
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchGames(request request) (*GameCollection, *Error) {
@@ -427,4 +381,13 @@ func fetchGames(request request) (*GameCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchGamesLink(link *Link, filter filter, sort *Sorting) *GameCollection {
+	if link == nil {
+		return &GameCollection{}
+	}
+
+	collection, _ := fetchGames(link.request(filter, sort))
+	return collection
 }

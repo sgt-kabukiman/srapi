@@ -49,6 +49,23 @@ type NameColor struct {
 	Dark  string
 }
 
+func toUser(data interface{}) *User {
+	dest := User{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
+func toUserCollection(data interface{}) *UserCollection {
+	tmp := &UserCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type userResponse struct {
 	Data User
 }
@@ -57,35 +74,12 @@ func UserById(id string) (*User, *Error) {
 	return fetchUser(request{"GET", "/users/" + id, nil, nil, nil})
 }
 
-func fetchUser(request request) (*User, *Error) {
-	result := &userResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
-}
-
 func (self *User) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
 }
 
 func (self *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollection {
-	link := firstLink(self, "games")
-	if link == nil {
-		return nil
-	}
-
-	games, _ := fetchGames(link.request(filter, sort))
-	return games
+	return fetchGamesLink(firstLink(self, "games"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -200,15 +194,13 @@ func (self *PersonalBest) Players() []*Player {
 
 					switch rel {
 					case "user":
-						user := User{}
-						if recast(playerProps, &user) == nil {
-							player.User = &user
+						if user := toUser(playerProps); user != nil {
+							player.User = user
 						}
 
 					case "guest":
-						guest := Guest{}
-						if recast(playerProps, &guest) == nil {
-							player.Guest = &guest
+						if guest := toGuest(playerProps); guest != nil {
+							player.Guest = guest
 						}
 					}
 
@@ -224,13 +216,7 @@ func (self *PersonalBest) Players() []*Player {
 }
 
 func (self *PersonalBest) Examiner() *User {
-	link := firstLink(&self.Run, "examiner")
-	if link == nil {
-		return nil
-	}
-
-	examiner, _ := fetchUser(link.request(nil, nil))
-	return examiner
+	return fetchUserLink(firstLink(&self.Run, "examiner"))
 }
 
 type personalBestResponse struct {
@@ -361,6 +347,26 @@ func (self *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
 	return fetchUsers(next.request(nil, nil))
 }
 
+func fetchUser(request request) (*User, *Error) {
+	result := &userResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchUserLink(link *Link) *User {
+	if link == nil {
+		return nil
+	}
+
+	user, _ := fetchUser(link.request(nil, nil))
+	return user
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchUsers(request request) (*UserCollection, *Error) {
@@ -372,4 +378,13 @@ func fetchUsers(request request) (*UserCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchUsersLink(link *Link, filter filter, sort *Sorting) *UserCollection {
+	if link == nil {
+		return &UserCollection{}
+	}
+
+	collection, _ := fetchUsers(link.request(filter, sort))
+	return collection
 }

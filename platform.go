@@ -17,40 +17,27 @@ func toPlatform(data interface{}) *Platform {
 	return nil
 }
 
+func toPlatformCollection(data interface{}) *PlatformCollection {
+	tmp := &PlatformCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 type platformResponse struct {
 	Data Platform
 }
 
 func PlatformById(id string) (*Platform, *Error) {
-	request := request{"GET", "/platforms/" + id, nil, nil, nil}
-	result := &platformResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
+	return fetchPlatform(request{"GET", "/platforms/" + id, nil, nil, nil})
 }
 
 func (self *Platform) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
 }
 
 func (self *Platform) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	link := firstLink(self, "games")
-	if link == nil {
-		return nil
-	}
-
-	games, _ := fetchGames(link.request(filter, sort))
-	return games
+	return fetchGamesLink(firstLink(self, "games"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -94,6 +81,26 @@ func (self *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Er
 	return fetchPlatforms(next.request(nil, nil))
 }
 
+func fetchPlatform(request request) (*Platform, *Error) {
+	result := &platformResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchPlatformLink(link *Link) *Platform {
+	if link == nil {
+		return nil
+	}
+
+	platform, _ := fetchPlatform(link.request(nil, nil))
+	return platform
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchPlatforms(request request) (*PlatformCollection, *Error) {
@@ -105,4 +112,13 @@ func fetchPlatforms(request request) (*PlatformCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchPlatformsLink(link *Link, filter filter, sort *Sorting) *PlatformCollection {
+	if link == nil {
+		return &PlatformCollection{}
+	}
+
+	collection, _ := fetchPlatforms(link.request(filter, sort))
+	return collection
 }

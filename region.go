@@ -16,6 +16,13 @@ func toRegion(data interface{}) *Region {
 	return nil
 }
 
+func toRegionCollection(data interface{}) *RegionCollection {
+	tmp := &RegionCollection{}
+	recast(data, tmp)
+
+	return tmp
+}
+
 // TODO: Maybe wrap this "data" element away in the HTTP client when it knows
 // that we fetch one single object.
 type regionResponse struct {
@@ -23,35 +30,15 @@ type regionResponse struct {
 }
 
 func RegionById(id string) (*Region, *Error) {
-	request := request{"GET", "/regions/" + id, nil, nil, nil}
-	result := &regionResponse{}
-
-	err := httpClient.do(request, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &result.Data, nil
+	return fetchRegion(request{"GET", "/regions/" + id, nil, nil, nil})
 }
 
 func (self *Region) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
-	link := firstLink(self, "runs")
-	if link == nil {
-		return nil
-	}
-
-	runs, _ := fetchRuns(link.request(filter, sort))
-	return runs
+	return fetchRunsLink(firstLink(self, "runs"), filter, sort)
 }
 
 func (self *Region) Games(filter *GameFilter, sort *Sorting) *GameCollection {
-	link := firstLink(self, "games")
-	if link == nil {
-		return nil
-	}
-
-	games, _ := fetchGames(link.request(filter, sort))
-	return games
+	return fetchGamesLink(firstLink(self, "games"), filter, sort)
 }
 
 // for the 'hasLinks' interface
@@ -95,6 +82,26 @@ func (self *RegionCollection) fetchLink(name string) (*RegionCollection, *Error)
 	return fetchRegions(next.request(nil, nil))
 }
 
+func fetchRegion(request request) (*Region, *Error) {
+	result := &regionResponse{}
+
+	err := httpClient.do(request, result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &result.Data, nil
+}
+
+func fetchRegionLink(link *Link) *Region {
+	if link == nil {
+		return nil
+	}
+
+	region, _ := fetchRegion(link.request(nil, nil))
+	return region
+}
+
 // always returns a collection, even when an error is returned;
 // makes other code more monadic
 func fetchRegions(request request) (*RegionCollection, *Error) {
@@ -106,4 +113,13 @@ func fetchRegions(request request) (*RegionCollection, *Error) {
 	}
 
 	return result, nil
+}
+
+func fetchRegionsLink(link *Link, filter filter, sort *Sorting) *RegionCollection {
+	if link == nil {
+		return &RegionCollection{}
+	}
+
+	collection, _ := fetchRegions(link.request(filter, sort))
+	return collection
 }
