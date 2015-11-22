@@ -12,10 +12,10 @@ type PlayerLink struct {
 	URI      string `json:"uri"`
 }
 
-func (self *PlayerLink) request() request {
+func (self *PlayerLink) request(filter filter, sort *Sorting) request {
 	relURL := self.URI[len(BaseUrl):]
 
-	return request{"GET", relURL, nil, nil, nil}
+	return request{"GET", relURL, filter, sort, nil}
 }
 
 type playerCollection struct {

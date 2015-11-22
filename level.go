@@ -1,11 +1,19 @@
 package srapi
 
+import "encoding/json"
+
 type Level struct {
 	Id      string
 	Name    string
 	Weblink string
 	Rules   string
 	Links   []Link
+
+	// do not use this field directly, use the available methods
+	CategoriesData interface{} `json:"categories"`
+
+	// do not use this field directly, use the available methods
+	VariablesData interface{} `json:"variables"`
 }
 
 type levelResponse struct {
@@ -33,8 +41,88 @@ func (self *Level) Game() *Game {
 		return nil
 	}
 
-	game, _ := fetchGame(link.request())
+	game, _ := fetchGame(link.request(nil, nil))
 	return game
+}
+
+func (self *Level) Categories(filter *CategoryFilter, sort *Sorting) []*Category {
+	if self.CategoriesData == nil {
+		link := firstLink(self, "categories")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchCategories(link.request(filter, sort))
+
+		return collection.categories()
+	}
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.CategoriesData)
+
+	// ... and try to turn it back into something meaningful
+	dest := CategoryCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		return dest.categories()
+	}
+
+	return make([]*Category, 0)
+}
+
+func (self *Level) Variables(sort *Sorting) []*Variable {
+	if self.VariablesData == nil {
+		link := firstLink(self, "variables")
+		if link == nil {
+			return nil
+		}
+
+		collection, _ := fetchVariables(link.request(nil, sort))
+
+		return collection.variables()
+	}
+
+	// convert generic mess into JSON
+	encoded, _ := json.Marshal(self.VariablesData)
+
+	// ... and try to turn it back into something meaningful
+	dest := VariableCollection{}
+	err := json.Unmarshal(encoded, &dest)
+	if err == nil {
+		return dest.variables()
+	}
+
+	return make([]*Variable, 0)
+}
+
+func (self *Level) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
+	link := firstLink(self, "leaderboard")
+	if link == nil {
+		return nil
+	}
+
+	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
+	return leaderboard
+}
+
+func (self *Level) Records(filter *LeaderboardFilter) *LeaderboardCollection {
+	link := firstLink(self, "records")
+	if link == nil {
+		return nil
+	}
+
+	leaderboards, _ := fetchLeaderboards(link.request(filter, nil))
+	return leaderboards
+}
+
+func (self *Level) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
 }
 
 // for the 'hasLinks' interface
@@ -71,7 +159,7 @@ func (self *LevelCollection) fetchLink(name string) (*LevelCollection, *Error) {
 		return nil, nil
 	}
 
-	return fetchLevels(next.request())
+	return fetchLevels(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

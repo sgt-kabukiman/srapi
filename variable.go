@@ -46,7 +46,7 @@ func (self *Variable) Game() *Game {
 		return nil
 	}
 
-	game, _ := fetchGame(link.request())
+	game, _ := fetchGame(link.request(nil, nil))
 	return game
 }
 
@@ -56,7 +56,7 @@ func (self *Variable) Category() *Category {
 		return nil
 	}
 
-	category, _ := fetchCategory(link.request())
+	category, _ := fetchCategory(link.request(nil, nil))
 	return category
 }
 
@@ -94,7 +94,7 @@ func (self *VariableCollection) fetchLink(name string) (*VariableCollection, *Er
 		return nil, nil
 	}
 
-	return fetchVariables(next.request())
+	return fetchVariables(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

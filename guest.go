@@ -26,6 +26,16 @@ func fetchGuest(request request) (*Guest, *Error) {
 	return &result.Data, nil
 }
 
+func (self *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
+}
+
 // for the 'hasLinks' interface
 func (self *Guest) links() []Link {
 	return self.Links

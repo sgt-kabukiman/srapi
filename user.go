@@ -65,6 +65,26 @@ func fetchUser(request request) (*User, *Error) {
 	return &result.Data, nil
 }
 
+func (self *User) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
+}
+
+func (self *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollection {
+	link := firstLink(self, "games")
+	if link == nil {
+		return nil
+	}
+
+	games, _ := fetchGames(link.request(filter, sort))
+	return games
+}
+
 // for the 'hasLinks' interface
 func (self *User) links() []Link {
 	return self.Links
@@ -142,7 +162,7 @@ func (self *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
 		return nil, nil
 	}
 
-	return fetchUsers(next.request())
+	return fetchUsers(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

@@ -24,6 +24,26 @@ func RegionById(id string) (*Region, *Error) {
 	return &result.Data, nil
 }
 
+func (self *Region) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
+}
+
+func (self *Region) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+	link := firstLink(self, "games")
+	if link == nil {
+		return nil
+	}
+
+	games, _ := fetchGames(link.request(filter, sort))
+	return games
+}
+
 // for the 'hasLinks' interface
 func (self *Region) links() []Link {
 	return self.Links
@@ -62,7 +82,7 @@ func (self *RegionCollection) fetchLink(name string) (*RegionCollection, *Error)
 		return nil, nil
 	}
 
-	return fetchRegions(next.request())
+	return fetchRegions(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

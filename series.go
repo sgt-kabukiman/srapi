@@ -40,13 +40,13 @@ func SeriesByAbbreviation(abbrev string) (*Series, *Error) {
 	return SeriesById(abbrev)
 }
 
-func (self *Series) Games() *GameCollection {
+func (self *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
 	link := firstLink(self, "games")
 	if link == nil {
 		return nil
 	}
 
-	collection, _ := fetchGames(link.request())
+	collection, _ := fetchGames(link.request(filter, sort))
 
 	return collection
 }
@@ -159,7 +159,7 @@ func (self *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error)
 		return nil, nil
 	}
 
-	return fetchManySeries(next.request())
+	return fetchManySeries(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

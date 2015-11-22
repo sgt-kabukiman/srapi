@@ -204,13 +204,13 @@ func (self *Run) Players() []*Player {
 
 				switch link.Relation {
 				case "user":
-					user, err := fetchUser(link.request())
+					user, err := fetchUser(link.request(nil, nil))
 					if err == nil {
 						player.User = user
 					}
 
 				case "guest":
-					guest, err := fetchGuest(link.request())
+					guest, err := fetchGuest(link.request(nil, nil))
 					if err == nil {
 						player.Guest = guest
 					}
@@ -267,7 +267,7 @@ func (self *Run) Examiner() *User {
 		return nil
 	}
 
-	examiner, _ := fetchUser(link.request())
+	examiner, _ := fetchUser(link.request(nil, nil))
 	return examiner
 }
 
@@ -372,7 +372,7 @@ func (self *RunCollection) fetchLink(name string) (*RunCollection, *Error) {
 		return nil, nil
 	}
 
-	return fetchRuns(next.request())
+	return fetchRuns(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

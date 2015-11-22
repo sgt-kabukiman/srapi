@@ -10,10 +10,10 @@ type Link struct {
 	URI      string `json:"uri"`
 }
 
-func (self *Link) request() request {
+func (self *Link) request(filter filter, sort *Sorting) request {
 	relURL := self.URI[len(BaseUrl):]
 
-	return request{"GET", relURL, nil, nil, nil}
+	return request{"GET", relURL, filter, sort, nil}
 }
 
 type AssetLink struct {

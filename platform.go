@@ -23,6 +23,26 @@ func PlatformById(id string) (*Platform, *Error) {
 	return &result.Data, nil
 }
 
+func (self *Platform) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
+}
+
+func (self *Platform) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+	link := firstLink(self, "games")
+	if link == nil {
+		return nil
+	}
+
+	games, _ := fetchGames(link.request(filter, sort))
+	return games
+}
+
 // for the 'hasLinks' interface
 func (self *Platform) links() []Link {
 	return self.Links
@@ -61,7 +81,7 @@ func (self *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Er
 		return nil, nil
 	}
 
-	return fetchPlatforms(next.request())
+	return fetchPlatforms(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

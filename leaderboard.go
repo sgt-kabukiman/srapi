@@ -369,7 +369,7 @@ func (self *LeaderboardCollection) fetchLink(name string) (*LeaderboardCollectio
 		return nil, nil
 	}
 
-	return fetchLeaderboards(next.request())
+	return fetchLeaderboards(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;

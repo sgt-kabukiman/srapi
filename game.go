@@ -76,7 +76,7 @@ func (self *Game) Series() *Series {
 		return nil
 	}
 
-	collection, _ := fetchOneSeries(link.request())
+	collection, _ := fetchOneSeries(link.request(nil, nil))
 
 	return collection
 }
@@ -187,14 +187,14 @@ func (self *Game) Regions() []*Region {
 	return result
 }
 
-func (self *Game) Categories() []*Category {
+func (self *Game) Categories(filter *CategoryFilter, sort *Sorting) []*Category {
 	if self.CategoriesData == nil {
 		link := firstLink(self, "categories")
 		if link == nil {
 			return nil
 		}
 
-		collection, _ := fetchCategories(link.request())
+		collection, _ := fetchCategories(link.request(filter, sort))
 
 		return collection.categories()
 	}
@@ -212,14 +212,14 @@ func (self *Game) Categories() []*Category {
 	return make([]*Category, 0)
 }
 
-func (self *Game) Levels() []*Level {
+func (self *Game) Levels(sort *Sorting) []*Level {
 	if self.LevelsData == nil {
 		link := firstLink(self, "levels")
 		if link == nil {
 			return nil
 		}
 
-		collection, _ := fetchLevels(link.request())
+		collection, _ := fetchLevels(link.request(nil, sort))
 
 		return collection.levels()
 	}
@@ -237,14 +237,14 @@ func (self *Game) Levels() []*Level {
 	return make([]*Level, 0)
 }
 
-func (self *Game) Variables() []*Variable {
+func (self *Game) Variables(sort *Sorting) []*Variable {
 	if self.VariablesData == nil {
 		link := firstLink(self, "variables")
 		if link == nil {
 			return nil
 		}
 
-		collection, _ := fetchVariables(link.request())
+		collection, _ := fetchVariables(link.request(nil, sort))
 
 		return collection.variables()
 	}
@@ -268,7 +268,7 @@ func (self *Game) Romhacks() *GameCollection {
 		return nil
 	}
 
-	collection, _ := fetchGames(link.request())
+	collection, _ := fetchGames(link.request(nil, nil))
 
 	return collection
 }
@@ -317,6 +317,36 @@ func (self *Game) Moderators() []*User {
 	}
 
 	return make([]*User, 0)
+}
+
+func (self *Game) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
+	link := firstLink(self, "leaderboard")
+	if link == nil {
+		return nil
+	}
+
+	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
+	return leaderboard
+}
+
+func (self *Game) Records(filter *LeaderboardFilter) *LeaderboardCollection {
+	link := firstLink(self, "records")
+	if link == nil {
+		return nil
+	}
+
+	leaderboards, _ := fetchLeaderboards(link.request(filter, nil))
+	return leaderboards
+}
+
+func (self *Game) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+	link := firstLink(self, "runs")
+	if link == nil {
+		return nil
+	}
+
+	runs, _ := fetchRuns(link.request(filter, sort))
+	return runs
 }
 
 // for the 'hasLinks' interface
@@ -405,7 +435,7 @@ func (self *GameCollection) fetchLink(name string) (*GameCollection, *Error) {
 		return nil, nil
 	}
 
-	return fetchGames(next.request())
+	return fetchGames(next.request(nil, nil))
 }
 
 // always returns a collection, even when an error is returned;
