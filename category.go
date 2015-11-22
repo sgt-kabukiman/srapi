@@ -1,3 +1,5 @@
+// Copyright (c) 2015, Sgt. Kabukiman | MIT licensed
+
 package srapi
 
 import "net/url"
