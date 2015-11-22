@@ -6,6 +6,16 @@ type Region struct {
 	Links []Link
 }
 
+func toRegion(data interface{}) *Region {
+	dest := Region{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
 // TODO: Maybe wrap this "data" element away in the HTTP client when it knows
 // that we fetch one single object.
 type regionResponse struct {

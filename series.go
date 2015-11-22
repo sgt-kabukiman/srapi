@@ -47,7 +47,6 @@ func (self *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
 	}
 
 	collection, _ := fetchGames(link.request(filter, sort))
-
 	return collection
 }
 
@@ -89,7 +88,6 @@ func (self *Series) Moderators() []*User {
 
 	// maybe we got a list of embedded users
 	tmp := UserCollection{}
-
 	if recast(self.ModeratorsData, &tmp) == nil {
 		return tmp.users()
 	}

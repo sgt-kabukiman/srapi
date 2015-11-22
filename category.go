@@ -1,9 +1,6 @@
 package srapi
 
-import (
-	"encoding/json"
-	"net/url"
-)
+import "net/url"
 
 type Category struct {
 	Id      string
@@ -23,6 +20,16 @@ type Category struct {
 
 	// do not use this field directly, use the available methods
 	VariablesData interface{} `json:"variables"`
+}
+
+func toCategory(data interface{}) *Category {
+	dest := Category{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
 }
 
 type categoryResponse struct {
@@ -55,17 +62,7 @@ func (self *Category) Game() *Game {
 		return game
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.GameData)
-
-	// ... and try to turn it back into something meaningful
-	dest := gameResponse{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest.Data
-	}
-
-	return nil
+	return toGame(self.GameData)
 }
 
 func (self *Category) Variables(s *Sorting) []*Variable {
@@ -81,13 +78,10 @@ func (self *Category) Variables(s *Sorting) []*Variable {
 	}
 
 	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.VariablesData)
+	tmp := VariableCollection{}
 
-	// ... and try to turn it back into something meaningful
-	dest := VariableCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.variables()
+	if recast(self.VariablesData, &tmp) == nil {
+		return tmp.variables()
 	}
 
 	return make([]*Variable, 0)

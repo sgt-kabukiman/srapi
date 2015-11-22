@@ -7,6 +7,16 @@ type Platform struct {
 	Links    []Link
 }
 
+func toPlatform(data interface{}) *Platform {
+	dest := Platform{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
 type platformResponse struct {
 	Data Platform
 }

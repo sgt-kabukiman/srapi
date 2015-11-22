@@ -21,6 +21,16 @@ type Variable struct {
 	Links []Link
 }
 
+func toVariable(data interface{}) *Variable {
+	dest := Variable{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
 type variableResponse struct {
 	Data Variable
 }

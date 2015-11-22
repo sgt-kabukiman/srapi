@@ -1,7 +1,6 @@
 package srapi
 
 import (
-	"encoding/json"
 	"net/url"
 	"strconv"
 )
@@ -47,6 +46,16 @@ type Game struct {
 	VariablesData interface{} `json:"variables"`
 }
 
+func toGame(data interface{}) *Game {
+	dest := Game{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
 type gameResponse struct {
 	Data Game
 }
@@ -76,9 +85,8 @@ func (self *Game) Series() *Series {
 		return nil
 	}
 
-	collection, _ := fetchOneSeries(link.request(nil, nil))
-
-	return collection
+	series, _ := fetchOneSeries(link.request(nil, nil))
+	return series
 }
 
 func (self *Game) PlatformIds() []string {
@@ -120,14 +128,9 @@ func (self *Game) Platforms() []*Platform {
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		// convert generic mess into JSON
-		encoded, _ := json.Marshal(asserted)
-
-		// ... and try to turn it back into something meaningful
-		dest := PlatformCollection{}
-		err := json.Unmarshal(encoded, &dest)
-		if err == nil {
-			return dest.platforms()
+		tmp := PlatformCollection{}
+		if recast(asserted, &tmp) == nil {
+			return tmp.platforms()
 		}
 	}
 
@@ -173,14 +176,9 @@ func (self *Game) Regions() []*Region {
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		// convert generic mess into JSON
-		encoded, _ := json.Marshal(asserted)
-
-		// ... and try to turn it back into something meaningful
-		dest := RegionCollection{}
-		err := json.Unmarshal(encoded, &dest)
-		if err == nil {
-			return dest.regions()
+		tmp := RegionCollection{}
+		if recast(asserted, &tmp) == nil {
+			return tmp.regions()
 		}
 	}
 
@@ -195,18 +193,12 @@ func (self *Game) Categories(filter *CategoryFilter, sort *Sorting) []*Category 
 		}
 
 		collection, _ := fetchCategories(link.request(filter, sort))
-
 		return collection.categories()
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.CategoriesData)
-
-	// ... and try to turn it back into something meaningful
-	dest := CategoryCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.categories()
+	tmp := CategoryCollection{}
+	if recast(self.CategoriesData, &tmp) == nil {
+		return tmp.categories()
 	}
 
 	return make([]*Category, 0)
@@ -220,18 +212,12 @@ func (self *Game) Levels(sort *Sorting) []*Level {
 		}
 
 		collection, _ := fetchLevels(link.request(nil, sort))
-
 		return collection.levels()
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.LevelsData)
-
-	// ... and try to turn it back into something meaningful
-	dest := LevelCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.levels()
+	tmp := LevelCollection{}
+	if recast(self.LevelsData, &tmp) == nil {
+		return tmp.levels()
 	}
 
 	return make([]*Level, 0)
@@ -245,18 +231,12 @@ func (self *Game) Variables(sort *Sorting) []*Variable {
 		}
 
 		collection, _ := fetchVariables(link.request(nil, sort))
-
 		return collection.variables()
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.VariablesData)
-
-	// ... and try to turn it back into something meaningful
-	dest := VariableCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.variables()
+	tmp := VariableCollection{}
+	if recast(self.VariablesData, &tmp) == nil {
+		return tmp.variables()
 	}
 
 	return make([]*Variable, 0)
@@ -269,7 +249,6 @@ func (self *Game) Romhacks() *GameCollection {
 	}
 
 	collection, _ := fetchGames(link.request(nil, nil))
-
 	return collection
 }
 
@@ -311,7 +290,6 @@ func (self *Game) Moderators() []*User {
 
 	// maybe we got a list of embedded users
 	tmp := UserCollection{}
-
 	if recast(self.ModeratorsData, &tmp) == nil {
 		return tmp.users()
 	}

@@ -1,7 +1,6 @@
 package srapi
 
 import (
-	"encoding/json"
 	"net/url"
 	"strconv"
 )
@@ -104,17 +103,7 @@ func (self *Leaderboard) Game() *Game {
 		return game
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.GameData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Game{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toGame(self.GameData)
 }
 
 func (self *Leaderboard) Category() *Category {
@@ -125,17 +114,7 @@ func (self *Leaderboard) Category() *Category {
 		return category
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.CategoryData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Category{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toCategory(self.CategoryData)
 }
 
 func (self *Leaderboard) Level() *Level {
@@ -150,17 +129,7 @@ func (self *Leaderboard) Level() *Level {
 		return level
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.LevelData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Level{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toLevel(self.LevelData)
 }
 
 func (self *Leaderboard) Platforms() []*Platform {
@@ -170,7 +139,6 @@ func (self *Leaderboard) Platforms() []*Platform {
 	}
 
 	tmp := PlatformCollection{}
-
 	if recast(self.PlatformsData, &tmp) == nil {
 		return tmp.platforms()
 	}
@@ -185,7 +153,6 @@ func (self *Leaderboard) Regions() []*Region {
 	}
 
 	tmp := RegionCollection{}
-
 	if recast(self.RegionsData, &tmp) == nil {
 		return tmp.regions()
 	}
@@ -214,14 +181,12 @@ func (self *Leaderboard) Players() []*Player {
 				switch rel {
 				case "user":
 					user := User{}
-
 					if recast(playerProps, &user) == nil {
 						player.User = &user
 					}
 
 				case "guest":
 					guest := Guest{}
-
 					if recast(playerProps, &guest) == nil {
 						player.Guest = &guest
 					}
@@ -243,7 +208,6 @@ func (self *Leaderboard) Variables() []*Variable {
 	}
 
 	tmp := VariableCollection{}
-
 	if recast(self.VariablesData, &tmp) == nil {
 		return tmp.variables()
 	}

@@ -1,9 +1,6 @@
 package srapi
 
-import (
-	"encoding/json"
-	"net/url"
-)
+import "net/url"
 
 type Run struct {
 	Id      string
@@ -81,17 +78,7 @@ func (self *Run) Game() *Game {
 		return game
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.GameData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Game{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toGame(self.GameData)
 }
 
 func (self *Run) Category() *Category {
@@ -106,17 +93,7 @@ func (self *Run) Category() *Category {
 		return category
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.CategoryData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Category{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toCategory(self.CategoryData)
 }
 
 func (self *Run) Level() *Level {
@@ -131,17 +108,7 @@ func (self *Run) Level() *Level {
 		return level
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.LevelData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Level{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toLevel(self.LevelData)
 }
 
 func (self *Run) Platform() *Platform {
@@ -154,17 +121,7 @@ func (self *Run) Platform() *Platform {
 		return nil
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.PlatformData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Platform{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toPlatform(self.PlatformData)
 }
 
 func (self *Run) Region() *Region {
@@ -177,17 +134,7 @@ func (self *Run) Region() *Region {
 		return nil
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.RegionData)
-
-	// ... and try to turn it back into something meaningful
-	dest := Region{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return &dest
-	}
-
-	return nil
+	return toRegion(self.RegionData)
 }
 
 func (self *Run) Players() []*Player {
@@ -237,14 +184,12 @@ func (self *Run) Players() []*Player {
 					switch rel {
 					case "user":
 						user := User{}
-
 						if recast(playerProps, &user) == nil {
 							player.User = &user
 						}
 
 					case "guest":
 						guest := Guest{}
-
 						if recast(playerProps, &guest) == nil {
 							player.Guest = &guest
 						}

@@ -117,48 +117,15 @@ type PersonalBest struct {
 }
 
 func (self *PersonalBest) Game() *Game {
-	if self.GameData == nil {
-		return nil
-	}
-
-	// convert generic mess into JSON
-	dest := Game{}
-
-	if recast(self.GameData, &dest) == nil {
-		return &dest
-	}
-
-	return nil
+	return toGame(self.GameData)
 }
 
 func (self *PersonalBest) Category() *Category {
-	if self.CategoryData == nil {
-		return nil
-	}
-
-	// convert generic mess into JSON
-	dest := Category{}
-
-	if recast(self.CategoryData, &dest) == nil {
-		return &dest
-	}
-
-	return nil
+	return toCategory(self.CategoryData)
 }
 
 func (self *PersonalBest) Level() *Level {
-	if self.LevelData == nil {
-		return nil
-	}
-
-	// convert generic mess into JSON
-	dest := Level{}
-
-	if recast(self.LevelData, &dest) == nil {
-		return &dest
-	}
-
-	return nil
+	return toLevel(self.LevelData)
 }
 
 func (self *PersonalBest) Platform() *Platform {
@@ -171,14 +138,7 @@ func (self *PersonalBest) Platform() *Platform {
 		return nil
 	}
 
-	// convert generic mess into JSON
-	dest := Platform{}
-
-	if recast(self.PlatformData, &dest) == nil {
-		return &dest
-	}
-
-	return nil
+	return toPlatform(self.PlatformData)
 }
 
 func (self *PersonalBest) Region() *Region {
@@ -191,14 +151,7 @@ func (self *PersonalBest) Region() *Region {
 		return nil
 	}
 
-	// convert generic mess into JSON
-	dest := Region{}
-
-	if recast(self.RegionData, &dest) == nil {
-		return &dest
-	}
-
-	return nil
+	return toRegion(self.RegionData)
 }
 
 func (self *PersonalBest) Players() []*Player {
@@ -248,14 +201,12 @@ func (self *PersonalBest) Players() []*Player {
 					switch rel {
 					case "user":
 						user := User{}
-
 						if recast(playerProps, &user) == nil {
 							player.User = &user
 						}
 
 					case "guest":
 						guest := Guest{}
-
 						if recast(playerProps, &guest) == nil {
 							player.Guest = &guest
 						}

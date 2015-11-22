@@ -1,7 +1,5 @@
 package srapi
 
-import "encoding/json"
-
 type Level struct {
 	Id      string
 	Name    string
@@ -14,6 +12,16 @@ type Level struct {
 
 	// do not use this field directly, use the available methods
 	VariablesData interface{} `json:"variables"`
+}
+
+func toLevel(data interface{}) *Level {
+	dest := Level{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
 }
 
 type levelResponse struct {
@@ -57,14 +65,9 @@ func (self *Level) Categories(filter *CategoryFilter, sort *Sorting) []*Category
 		return collection.categories()
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.CategoriesData)
-
-	// ... and try to turn it back into something meaningful
-	dest := CategoryCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.categories()
+	tmp := CategoryCollection{}
+	if recast(self.CategoriesData, &tmp) == nil {
+		return tmp.categories()
 	}
 
 	return make([]*Category, 0)
@@ -82,14 +85,9 @@ func (self *Level) Variables(sort *Sorting) []*Variable {
 		return collection.variables()
 	}
 
-	// convert generic mess into JSON
-	encoded, _ := json.Marshal(self.VariablesData)
-
-	// ... and try to turn it back into something meaningful
-	dest := VariableCollection{}
-	err := json.Unmarshal(encoded, &dest)
-	if err == nil {
-		return dest.variables()
+	tmp := VariableCollection{}
+	if recast(self.VariablesData, &tmp) == nil {
+		return tmp.variables()
 	}
 
 	return make([]*Variable, 0)

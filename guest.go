@@ -7,6 +7,16 @@ type Guest struct {
 	Links []Link
 }
 
+func toGuest(data interface{}) *Guest {
+	dest := Guest{}
+
+	if data != nil && recast(data, &dest) == nil {
+		return &dest
+	}
+
+	return nil
+}
+
 type guestResponse struct {
 	Data Guest
 }
