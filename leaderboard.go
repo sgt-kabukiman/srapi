@@ -248,10 +248,10 @@ type LeaderboardOptions struct {
 	Region string
 
 	// When set, can control if all or no runs are done on emulators.
-	Emulators *bool
+	Emulators OptionalFlag
 
 	// When set, can control if all or no runs are required to have a video.
-	VideoOnly *bool
+	VideoOnly OptionalFlag
 
 	// the timing method that should be used to compare runs; not all are
 	// allowed for all games, a server-side error will be returned if an invalid
@@ -289,21 +289,8 @@ func (lo *LeaderboardOptions) applyToURL(u *url.URL) {
 		values.Set("date", lo.Date)
 	}
 
-	if lo.Emulators != nil {
-		if *lo.Emulators {
-			values.Set("emulators", "yes")
-		} else {
-			values.Set("emulators", "no")
-		}
-	}
-
-	if lo.VideoOnly != nil {
-		if *lo.VideoOnly {
-			values.Set("video-only", "yes")
-		} else {
-			values.Set("video-only", "no")
-		}
-	}
+	lo.Emulators.applyToQuery("emulators", &values)
+	lo.VideoOnly.applyToQuery("video-only", &values)
 
 	for varID, valueID := range lo.Values {
 		values.Set("var-"+varID, valueID)
@@ -321,7 +308,7 @@ type LeaderboardFilter struct {
 	Top int
 
 	// If set, can be used to skip returning empty leaderboards.
-	SkipEmpty *bool
+	SkipEmpty OptionalFlag
 }
 
 // applyToURL merged the filter into a URL.
@@ -332,13 +319,7 @@ func (lf *LeaderboardFilter) applyToURL(u *url.URL) {
 		values.Set("top", strconv.Itoa(lf.Top))
 	}
 
-	if lf.SkipEmpty != nil {
-		if *lf.SkipEmpty {
-			values.Set("skip-empty", "yes")
-		} else {
-			values.Set("skip-empty", "no")
-		}
-	}
+	lf.SkipEmpty.applyToQuery("skip-empty", &values)
 
 	u.RawQuery = values.Encode()
 }

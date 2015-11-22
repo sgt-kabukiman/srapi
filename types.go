@@ -100,6 +100,42 @@ func (s *Sorting) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
+// OptionalFlag represents a tri-state of true, false and undefined and is used for
+// flags in collection filters.
+type OptionalFlag int
+
+const (
+	// Undefined represents an unset flag
+	Undefined OptionalFlag = iota
+
+	// Yes is true.
+	Yes
+
+	// No is false.
+	No
+)
+
+// applyToURL sets the flag in a query string if it's not Undefined.
+func (f OptionalFlag) applyToQuery(name string, values *url.Values) {
+	if f == Yes || f == No {
+		values.Set(name, f.String())
+	}
+}
+
+// String returns a string representation.
+func (f OptionalFlag) String() string {
+	switch f {
+	case Yes:
+		return "yes"
+
+	case No:
+		return "no"
+
+	default:
+		return ""
+	}
+}
+
 // TimingMethod specifies what time was measured for a run.
 type TimingMethod string
 
@@ -108,10 +144,10 @@ const (
 	TimingRealtime TimingMethod = "realtime"
 
 	// TimingRealtimeWithoutLoads is realtime without loads.
-	TimingRealtimeWithoutLoads = "realtime_noloads"
+	TimingRealtimeWithoutLoads TimingMethod = "realtime_noloads"
 
 	// TimingIngameTime is using the in-game timer.
-	TimingIngameTime = "ingame"
+	TimingIngameTime TimingMethod = "ingame"
 )
 
 // GameModLevel determines the power level of a moderator.
@@ -122,9 +158,9 @@ const (
 	NormalModerator GameModLevel = "moderator"
 
 	// SuperModerator users can appoint other moderators.
-	SuperModerator = "super-moderator"
+	SuperModerator GameModLevel = "super-moderator"
 
 	// UnknownModLevel is used for when moderators have been embedded and there
 	// is no information available about their actual level.
-	UnknownModLevel = "unknown"
+	UnknownModLevel GameModLevel = "unknown"
 )

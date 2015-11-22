@@ -303,7 +303,7 @@ type RunFilter struct {
 	Region string
 
 	// when set, controls if all or no runs are on emulator
-	Emulated *bool
+	Emulated OptionalFlag
 
 	// can be set to "new", "verified" or "rejected"
 	Status string
@@ -349,13 +349,7 @@ func (rf *RunFilter) applyToURL(u *url.URL) {
 		values.Set("status", rf.Status)
 	}
 
-	if rf.Emulated != nil {
-		if *rf.Emulated {
-			values.Set("emulated", "yes")
-		} else {
-			values.Set("emulated", "no")
-		}
-	}
+	rf.Emulated.applyToQuery("emulated", &values)
 
 	u.RawQuery = values.Encode()
 }

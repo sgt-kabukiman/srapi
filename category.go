@@ -127,21 +127,13 @@ func (c *Category) links() []Link {
 // CategoryFilter represents the possible filtering options when fetching a list
 // of categories.
 type CategoryFilter struct {
-	Miscellaneous *bool
+	Miscellaneous OptionalFlag
 }
 
 // applyToURL merged the filter into a URL.
 func (cf *CategoryFilter) applyToURL(u *url.URL) {
 	values := u.Query()
-
-	if cf.Miscellaneous != nil {
-		if *cf.Miscellaneous {
-			values.Set("miscellaneous", "yes")
-		} else {
-			values.Set("miscellaneous", "no")
-		}
-	}
-
+	cf.Miscellaneous.applyToQuery("miscellaneous", &values)
 	u.RawQuery = values.Encode()
 }
 

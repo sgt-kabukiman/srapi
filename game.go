@@ -344,7 +344,7 @@ type GameFilter struct {
 	Platform     string
 	Region       string
 	Moderator    string
-	Romhack      *bool
+	Romhack      OptionalFlag
 }
 
 // applyToURL merged the filter into a URL.
@@ -375,13 +375,7 @@ func (gf *GameFilter) applyToURL(u *url.URL) {
 		values.Set("moderator", gf.Moderator)
 	}
 
-	if gf.Romhack != nil {
-		if *gf.Romhack {
-			values.Set("romhack", "yes")
-		} else {
-			values.Set("romhack", "no")
-		}
-	}
+	gf.Romhack.applyToQuery("romhack", &values)
 
 	u.RawQuery = values.Encode()
 }
