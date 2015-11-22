@@ -13,6 +13,7 @@ const ErrorBadJSON = 900
 const ErrorNetwork = 901
 const ErrorBadURL = 902
 const ErrorBadLogic = 903
+const ErrorNoSuchLink = 904
 
 const BaseUrl = "http://www.speedrun.com/api/v1"
 
