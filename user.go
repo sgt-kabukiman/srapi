@@ -1,6 +1,9 @@
 package srapi
 
-import "net/url"
+import (
+	"net/url"
+	"strconv"
+)
 
 type User struct {
 	Id    string
@@ -88,6 +91,64 @@ func (self *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollect
 // for the 'hasLinks' interface
 func (self *User) links() []Link {
 	return self.Links
+}
+
+type PersonalBest struct {
+	Rank int
+	Run  Run
+}
+
+type personalBestResponse struct {
+	Data []PersonalBest
+}
+
+func (self *personalBestResponse) personalBests() []*PersonalBest {
+	result := make([]*PersonalBest, 0)
+
+	for idx := range self.Data {
+		result = append(result, &self.Data[idx])
+	}
+
+	return result
+}
+
+type PersonalBestFilter struct {
+	Top    int
+	Series string
+	Game   string
+}
+
+func (self *PersonalBestFilter) applyToURL(u *url.URL) {
+	values := u.Query()
+
+	if self.Top > 0 {
+		values.Set("top", strconv.Itoa(self.Top))
+	}
+
+	if len(self.Series) > 0 {
+		values.Set("series", self.Series)
+	}
+
+	if len(self.Game) > 0 {
+		values.Set("game", self.Game)
+	}
+
+	u.RawQuery = values.Encode()
+}
+
+func (self *User) PersonalBests(filter *PersonalBestFilter) []*PersonalBest {
+	link := firstLink(self, "personal-bests")
+	if link == nil {
+		return make([]*PersonalBest, 0)
+	}
+
+	tmp := personalBestResponse{}
+	err := httpClient.do(link.request(filter, nil), &tmp)
+	if err != nil {
+		return make([]*PersonalBest, 0)
+	}
+
+	return tmp.personalBests()
 }
 
 type UserCollection struct {
