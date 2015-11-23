@@ -134,4 +134,30 @@ func TestRegions(t *testing.T) {
 			So(firstID, ShouldNotEqual, runs.Data[0].ID)
 		})
 	})
+
+	Convey("Fetching games of a region", t, func() {
+		region, err := RegionByID("e6lxy1dz") // Europe/PAL
+		So(err, ShouldBeNil)
+
+		games := region.Games(nil, nil)
+		So(err, ShouldBeNil)
+
+		firstID := ""
+
+		Convey("first page of games should be fine", func() {
+			So(games.Data, ShouldNotBeEmpty)
+			So(games.Pagination.Offset, ShouldEqual, 0)
+
+			firstID = games.Data[0].ID
+		})
+
+		games = region.Games(nil, &Sorting{Direction: Descending})
+		So(err, ShouldBeNil)
+
+		Convey("sorting order should be taken into account", func() {
+			So(games.Data, ShouldNotBeEmpty)
+			So(games.Pagination.Offset, ShouldEqual, 0)
+			So(firstID, ShouldNotEqual, games.Data[0].ID)
+		})
+	})
 }
