@@ -89,6 +89,10 @@ type SeriesFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (sf *SeriesFilter) applyToURL(u *url.URL) {
+	if sf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if len(sf.Name) > 0 {

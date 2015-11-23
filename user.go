@@ -134,6 +134,10 @@ type UserFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (uf *UserFilter) applyToURL(u *url.URL) {
+	if uf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if len(uf.Lookup) > 0 {

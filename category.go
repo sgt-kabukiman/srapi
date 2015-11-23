@@ -132,6 +132,10 @@ type CategoryFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (cf *CategoryFilter) applyToURL(u *url.URL) {
+	if cf == nil {
+		return
+	}
+
 	values := u.Query()
 	cf.Miscellaneous.applyToQuery("miscellaneous", &values)
 	u.RawQuery = values.Encode()

@@ -317,6 +317,10 @@ type GameFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (gf *GameFilter) applyToURL(u *url.URL) {
+	if gf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if len(gf.Name) > 0 {

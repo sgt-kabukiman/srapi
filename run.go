@@ -270,6 +270,10 @@ type RunFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (rf *RunFilter) applyToURL(u *url.URL) {
+	if rf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if len(rf.User) > 0 {

@@ -60,10 +60,19 @@ type Cursor struct {
 
 // applyToURL merged the filter into a URL.
 func (c *Cursor) applyToURL(u *url.URL) {
+	if c == nil {
+		return
+	}
+
 	values := u.Query()
 
-	values.Set("offset", strconv.Itoa(c.Offset))
-	values.Set("max", strconv.Itoa(c.Max))
+	if c.Offset > 0 {
+		values.Set("offset", strconv.Itoa(c.Offset))
+	}
+
+	if c.Max > 0 {
+		values.Set("max", strconv.Itoa(c.Max))
+	}
 
 	u.RawQuery = values.Encode()
 }
@@ -87,6 +96,10 @@ type Sorting struct {
 
 // applyToURL merged the filter into a URL.
 func (s *Sorting) applyToURL(u *url.URL) {
+	if s == nil {
+		return
+	}
+
 	values := u.Query()
 	dir := "asc"
 

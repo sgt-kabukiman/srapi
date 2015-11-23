@@ -140,6 +140,10 @@ type PersonalBestFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (pbf *PersonalBestFilter) applyToURL(u *url.URL) {
+	if pbf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if pbf.Top > 0 {

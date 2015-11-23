@@ -238,6 +238,10 @@ type LeaderboardOptions struct {
 
 // applyToURL merged the filter into a URL.
 func (lo *LeaderboardOptions) applyToURL(u *url.URL) {
+	if lo == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if lo.Top > 0 {
@@ -284,6 +288,10 @@ type LeaderboardFilter struct {
 
 // applyToURL merged the filter into a URL.
 func (lf *LeaderboardFilter) applyToURL(u *url.URL) {
+	if lf == nil {
+		return
+	}
+
 	values := u.Query()
 
 	if lf.Top > 0 {
