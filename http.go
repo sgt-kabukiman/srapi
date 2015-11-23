@@ -81,7 +81,9 @@ func (ac *apiClient) do(request request, dst interface{}) *Error {
 		return failedRequest(request, nil, err, ErrorBadURL)
 	}
 
-	request.filter.applyToURL(u)
+	if request.filter != nil {
+		request.filter.applyToURL(u)
+	}
 
 	if request.cursor != nil {
 		request.cursor.applyToURL(u)
