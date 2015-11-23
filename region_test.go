@@ -2,70 +2,136 @@
 
 package srapi
 
-import "testing"
+import (
+	"testing"
 
-func TestGetRegion(t *testing.T) {
-	region, err := RegionByID("mol4z19n")
-	if err != nil {
-		t.Fatal(err)
-	}
+	. "github.com/smartystreets/goconvey/convey"
+)
 
-	if len(region.ID) == 0 {
-		t.Fatal("Region does not have an ID.")
-	}
+func TestRegions(t *testing.T) {
+	Convey("Fetching regions by valid IDs", t, func() {
+		id := "mol4z19n"
 
-	if len(region.Name) == 0 {
-		t.Fatal("Region does not have an name.")
-	}
-}
+		region, err := RegionByID(id)
 
-func TestGetNonexistingRegion(t *testing.T) {
-	_, err := RegionByID("i_do_not_exist")
-	if err == nil {
-		t.Fatal("Fetching a nonexisting region should yield an error.")
-	}
-}
+		So(err, ShouldBeNil)
+		So(region.ID, ShouldEqual, id)
+		So(region.Name, ShouldNotBeBlank)
+		So(region.Links, ShouldNotBeEmpty)
+	})
 
-func TestGetRegions(t *testing.T) {
-	regions, err := Regions(nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+	Convey("Fetching regions by invalid IDs", t, func() {
+		region, err := RegionByID("i_do_not_exist")
+		So(err, ShouldNotBeNil)
+		So(region, ShouldBeNil)
+	})
 
-	if len(regions.Data) == 0 {
-		t.Fatal("Could not find any regions.")
-	}
+	Convey("Fetching multiple regions", t, func() {
+		Convey("starting from the beginning", func() {
+			regions, err := Regions(nil, nil)
 
-	first := regions.Data[0]
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldNotBeEmpty)
+			So(regions.Pagination.Offset, ShouldEqual, 0)
 
-	if len(first.ID) == 0 {
-		t.Fatal("First region does not have an ID.")
-	}
+			region := regions.Data[0]
+			So(region.ID, ShouldNotBeBlank)
+			So(region.Name, ShouldNotBeBlank)
+			So(region.Links, ShouldNotBeEmpty)
+		})
 
-	if len(first.Name) == 0 {
-		t.Fatal("First region does not have an name.")
-	}
-}
+		Convey("skipping the first few", func() {
+			regions, err := Regions(nil, &Cursor{2, 0})
 
-func TestGetRegionPages(t *testing.T) {
-	regions, err := Regions(nil, &Cursor{0, 2})
-	if err != nil {
-		t.Fatal(err)
-	}
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldNotBeEmpty)
+			So(regions.Pagination.Offset, ShouldEqual, 2)
+			So(regions.Pagination.Links, ShouldNotBeEmpty)
 
-	if regions.Pagination.Offset != 0 {
-		t.Fatal("Requesting the first two regions did not return offset=0.")
-	}
+			region := regions.Data[0]
+			So(region.ID, ShouldNotBeBlank)
+			So(region.Name, ShouldNotBeBlank)
+			So(region.Links, ShouldNotBeEmpty)
+		})
 
-	prev, err := regions.PrevPage()
+		Convey("limited to just a few", func() {
+			regions, err := Regions(nil, &Cursor{0, 3})
 
-	if prev != nil {
-		t.Fatal("Requesting the previous page of page 0 should yield nil.")
-	}
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldHaveLength, 3)
+			So(regions.Pagination.Offset, ShouldEqual, 0)
+			So(regions.Pagination.Max, ShouldEqual, 3)
+			So(regions.Pagination.Links, ShouldNotBeEmpty)
 
-	next, err := regions.NextPage()
+			region := regions.Data[0]
+			So(region.ID, ShouldNotBeBlank)
+			So(region.Name, ShouldNotBeBlank)
+			So(region.Links, ShouldNotBeEmpty)
+		})
 
-	if next.Pagination.Offset != 2 {
-		t.Fatal("The second page should have offset 2.")
-	}
+		Convey("paging through the regions", func() {
+			regions, err := Regions(nil, &Cursor{0, 1})
+
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldHaveLength, 1)
+			So(regions.Pagination.Offset, ShouldEqual, 0)
+			So(regions.Pagination.Max, ShouldEqual, 1)
+
+			regions, err = regions.NextPage()
+
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldHaveLength, 1)
+			So(regions.Pagination.Offset, ShouldEqual, 1)
+			So(regions.Pagination.Max, ShouldEqual, 1)
+
+			regions, err = regions.NextPage()
+
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldHaveLength, 1)
+			So(regions.Pagination.Offset, ShouldEqual, 2)
+			So(regions.Pagination.Max, ShouldEqual, 1)
+
+			regions, err = regions.PrevPage()
+
+			So(err, ShouldBeNil)
+			So(regions.Data, ShouldHaveLength, 1)
+			So(regions.Pagination.Offset, ShouldEqual, 1)
+			So(regions.Pagination.Max, ShouldEqual, 1)
+		})
+
+		Convey("the prev page from the beginning should yield an error", func() {
+			regions, err := Regions(nil, nil)
+
+			regions, err = regions.PrevPage()
+
+			So(err, ShouldNotBeNil)
+			So(regions, ShouldNotBeNil)
+		})
+	})
+
+	Convey("Fetching runs of a region", t, func() {
+		region, err := RegionByID("e6lxy1dz") // Europe/PAL
+		So(err, ShouldBeNil)
+
+		runs := region.Runs(nil, nil)
+		So(err, ShouldBeNil)
+
+		firstID := ""
+
+		Convey("first page of runs should be fine", func() {
+			So(runs.Data, ShouldNotBeEmpty)
+			So(runs.Pagination.Offset, ShouldEqual, 0)
+
+			firstID = runs.Data[0].ID
+		})
+
+		runs = region.Runs(nil, &Sorting{Direction: Descending})
+		So(err, ShouldBeNil)
+
+		Convey("sorting order should be taken into account", func() {
+			So(runs.Data, ShouldNotBeEmpty)
+			So(runs.Pagination.Offset, ShouldEqual, 0)
+			So(firstID, ShouldNotEqual, runs.Data[0].ID)
+		})
+	})
 }
