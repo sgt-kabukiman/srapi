@@ -38,14 +38,22 @@ func recast(data interface{}, dest interface{}) error {
 // resulting map containts UnknownModLevel for every user. If you need both,
 // there is no other way than to perform two requests.
 func recastToModeratorMap(data interface{}) map[string]GameModLevel {
+	result := make(map[string]GameModLevel)
+
 	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := data.(map[string]GameModLevel)
+	assertedMap, okay := data.(map[string]interface{})
 	if okay {
-		return assertedMap
+		for userID, something := range assertedMap {
+			level, okay := something.(string)
+			if okay {
+				result[userID] = GameModLevel(level)
+			}
+		}
+
+		return result
 	}
 
 	// maybe we got a list of embedded users
-	result := make(map[string]GameModLevel, 0)
 	tmp := UserCollection{}
 
 	if recast(data, &tmp) == nil {
@@ -62,7 +70,7 @@ func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 // network.
 func recastToModerators(data interface{}) []*User {
 	// we have a simple map between user IDs and mod levels
-	assertedMap, okay := data.(map[string]GameModLevel)
+	assertedMap, okay := data.(map[string]interface{})
 	if okay {
 		var result []*User
 

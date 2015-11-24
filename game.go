@@ -269,14 +269,14 @@ func (g *Game) Romhacks() *GameCollection {
 // map containts UnknownModLevel for every user. If you need both, there is no
 // other way than to perform two requests.
 func (g *Game) ModeratorMap() map[string]GameModLevel {
-	return recastToModeratorMap(&g.ModeratorsData)
+	return recastToModeratorMap(g.ModeratorsData)
 }
 
 // Moderators returns a list of users that are moderators of the game. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
 func (g *Game) Moderators() []*User {
-	return recastToModerators(&g.ModeratorsData)
+	return recastToModerators(g.ModeratorsData)
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the game.
