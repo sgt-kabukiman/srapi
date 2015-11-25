@@ -29,7 +29,7 @@ func TestGuests(t *testing.T) {
 		guest, err := GuestByName("SgtRockworth")
 		So(err, ShouldBeNil)
 
-		runs := guest.Runs(nil, nil)
+		runs, err := guest.Runs(nil, nil)
 		So(err, ShouldBeNil)
 		So(runs, ShouldNotBeEmpty)
 	})

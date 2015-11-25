@@ -37,71 +37,71 @@ type PersonalBest struct {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (pb *PersonalBest) Game() *Game {
+func (pb *PersonalBest) Game() (*Game, *Error) {
 	if pb.GameData == nil {
 		return pb.Run.Game()
 	}
 
-	return toGame(pb.GameData)
+	return toGame(pb.GameData), nil
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the category by doing one additional request. If nothing on the server side is
 // fubar, then this function should never return nil.
-func (pb *PersonalBest) Category() *Category {
+func (pb *PersonalBest) Category() (*Category, *Error) {
 	if pb.CategoryData == nil {
 		return pb.Run.Category()
 	}
 
-	return toCategory(pb.CategoryData)
+	return toCategory(pb.CategoryData), nil
 }
 
 // Level extracts the embedded level, if possible, otherwise it will fetch the
 // level by doing one additional request. For full-game runs, this returns nil.
-func (pb *PersonalBest) Level() *Level {
+func (pb *PersonalBest) Level() (*Level, *Error) {
 	if pb.LevelData == nil {
 		return pb.Run.Level()
 	}
 
-	return toLevel(pb.LevelData)
+	return toLevel(pb.LevelData), nil
 }
 
 // Platform extracts the embedded platform, if possible, otherwise it will fetch
 // the platform by doing one additional request. Not all runs have platforms
 // attached, so this can return nil.
-func (pb *PersonalBest) Platform() *Platform {
+func (pb *PersonalBest) Platform() (*Platform, *Error) {
 	if pb.PlatformData == nil {
 		return pb.Run.Platform()
 	}
 
-	return toPlatform(pb.PlatformData)
+	return toPlatform(pb.PlatformData), nil
 }
 
 // Region extracts the embedded region, if possible, otherwise it will fetch
 // the region by doing one additional request. Not all runs have regions
 // attached, so this can return nil.
-func (pb *PersonalBest) Region() *Region {
+func (pb *PersonalBest) Region() (*Region, *Error) {
 	if pb.RegionData == nil {
 		return pb.Run.Region()
 	}
 
-	return toRegion(pb.RegionData)
+	return toRegion(pb.RegionData), nil
 }
 
 // Players returns a list of all players that aparticipated in this PB.
 // If they have not been embedded, they are fetched individually from the
 // network, one request per player.
-func (pb *PersonalBest) Players() []*Player {
+func (pb *PersonalBest) Players() ([]*Player, *Error) {
 	if pb.PlayersData == nil {
 		return pb.Run.Players()
 	}
 
-	return recastToPlayerList(pb.PlayersData)
+	return recastToPlayerList(pb.PlayersData), nil
 }
 
 // Examiner returns the user that examined the run after submission. This can
 // be nil.
-func (pb *PersonalBest) Examiner() *User {
+func (pb *PersonalBest) Examiner() (*User, *Error) {
 	return fetchUserLink(firstLink(&pb.Run, "examiner"))
 }
 
@@ -159,4 +159,24 @@ func (pbf *PersonalBestFilter) applyToURL(u *url.URL) {
 	}
 
 	u.RawQuery = values.Encode()
+}
+
+// fetchVariables fetches a list of PBs from the network. It always
+// returns a collection, even when an error is returned.
+func fetchPersonalBests(request request) ([]*PersonalBest, *Error) {
+	result := &personalBestsResponse{}
+	err := httpClient.do(request, result)
+
+	return result.personalBests(), err
+}
+
+// fetchPersonalBestsLink tries to fetch a given link and interpret the response as
+// a list of PBs. It always returns a collection, even when an error is
+// returned or the given link is nil.
+func fetchPersonalBestsLink(link requestable, filter *PersonalBestFilter) ([]*PersonalBest, *Error) {
+	if !link.exists() {
+		return make([]*PersonalBest, 0), nil
+	}
+
+	return fetchPersonalBests(link.request(filter, nil))
 }

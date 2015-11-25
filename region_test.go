@@ -29,7 +29,6 @@ func TestRegions(t *testing.T) {
 	Convey("Fetching multiple regions", t, func() {
 		Convey("starting from the beginning", func() {
 			regions, err := Regions(nil, nil)
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldNotBeEmpty)
 			So(regions.Pagination.Offset, ShouldEqual, 0)
@@ -42,7 +41,6 @@ func TestRegions(t *testing.T) {
 
 		Convey("skipping the first few", func() {
 			regions, err := Regions(nil, &Cursor{2, 0})
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldNotBeEmpty)
 			So(regions.Pagination.Offset, ShouldEqual, 2)
@@ -56,7 +54,6 @@ func TestRegions(t *testing.T) {
 
 		Convey("limited to just a few", func() {
 			regions, err := Regions(nil, &Cursor{0, 3})
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldHaveLength, 3)
 			So(regions.Pagination.Offset, ShouldEqual, 0)
@@ -71,28 +68,24 @@ func TestRegions(t *testing.T) {
 
 		Convey("paging through the regions", func() {
 			regions, err := Regions(nil, &Cursor{0, 1})
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldHaveLength, 1)
 			So(regions.Pagination.Offset, ShouldEqual, 0)
 			So(regions.Pagination.Max, ShouldEqual, 1)
 
 			regions, err = regions.NextPage()
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldHaveLength, 1)
 			So(regions.Pagination.Offset, ShouldEqual, 1)
 			So(regions.Pagination.Max, ShouldEqual, 1)
 
 			regions, err = regions.NextPage()
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldHaveLength, 1)
 			So(regions.Pagination.Offset, ShouldEqual, 2)
 			So(regions.Pagination.Max, ShouldEqual, 1)
 
 			regions, err = regions.PrevPage()
-
 			So(err, ShouldBeNil)
 			So(regions.Data, ShouldHaveLength, 1)
 			So(regions.Pagination.Offset, ShouldEqual, 1)
@@ -103,7 +96,6 @@ func TestRegions(t *testing.T) {
 			regions, err := Regions(nil, nil)
 
 			regions, err = regions.PrevPage()
-
 			So(err, ShouldNotBeNil)
 			So(regions, ShouldNotBeNil)
 		})
@@ -113,7 +105,7 @@ func TestRegions(t *testing.T) {
 		region, err := RegionByID("e6lxy1dz") // Europe/PAL
 		So(err, ShouldBeNil)
 
-		runs := region.Runs(nil, nil)
+		runs, err := region.Runs(nil, nil)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -125,7 +117,7 @@ func TestRegions(t *testing.T) {
 			firstID = runs.Data[0].ID
 		})
 
-		runs = region.Runs(nil, &Sorting{Direction: Descending})
+		runs, err = region.Runs(nil, &Sorting{Direction: Descending})
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
@@ -139,7 +131,7 @@ func TestRegions(t *testing.T) {
 		region, err := RegionByID("e6lxy1dz") // Europe/PAL
 		So(err, ShouldBeNil)
 
-		games := region.Games(nil, nil)
+		games, err := region.Games(nil, nil)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -151,7 +143,7 @@ func TestRegions(t *testing.T) {
 			firstID = games.Data[0].ID
 		})
 
-		games = region.Games(nil, &Sorting{Direction: Descending})
+		games, err = region.Games(nil, &Sorting{Direction: Descending})
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {

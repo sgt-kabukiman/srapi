@@ -9,6 +9,7 @@ import (
 
 // requestable describes anything that can turn itself into a request.
 type requestable interface {
+	exists() bool
 	request(filter, *Sorting) request
 }
 
@@ -16,6 +17,11 @@ type requestable interface {
 type Link struct {
 	Relation string `json:"rel"`
 	URI      string `json:"uri"`
+}
+
+// checks if the link exists
+func (l *Link) exists() bool {
+	return l != nil
 }
 
 // request turns a link into a GET request.

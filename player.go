@@ -21,6 +21,11 @@ type PlayerLink struct {
 	Name string
 }
 
+// checks if the link exists
+func (pl *PlayerLink) exists() bool {
+	return pl != nil
+}
+
 // request turns a link into a request
 func (pl *PlayerLink) request(filter filter, sort *Sorting) request {
 	relURL := pl.URI[len(BaseURL):]
@@ -29,24 +34,28 @@ func (pl *PlayerLink) request(filter filter, sort *Sorting) request {
 }
 
 // fetch retrieves the user or guest the link points to
-func (pl *PlayerLink) fetch() *Player {
-	player := Player{}
+func (pl *PlayerLink) fetch() (*Player, *Error) {
+	player := &Player{}
 
 	switch pl.Relation {
 	case "user":
-		if user := fetchUserLink(pl); user != nil {
-			player.User = user
-			return &player
+		user, err := fetchUserLink(pl)
+		if err != nil {
+			return player, err
 		}
+
+		player.User = user
 
 	case "guest":
-		if guest := fetchGuestLink(pl); guest != nil {
-			player.Guest = guest
-			return &player
+		guest, err := fetchGuestLink(pl)
+		if err != nil {
+			return player, err
 		}
+
+		player.Guest = guest
 	}
 
-	return nil
+	return player, nil
 }
 
 // playerCollection is a list of players, used inside Run structs

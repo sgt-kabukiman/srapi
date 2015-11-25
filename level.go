@@ -63,55 +63,63 @@ func LevelByID(id string) (*Level, *Error) {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (l *Level) Game() *Game {
+func (l *Level) Game() (*Game, *Error) {
 	return fetchGameLink(firstLink(l, "game"))
 }
 
 // Categories extracts the embedded categories, if possible, otherwise it will
 // fetch them by doing one additional request. filter and sort are only relevant
 // when the categories are not already embedded.
-func (l *Level) Categories(filter *CategoryFilter, sort *Sorting) []*Category {
+func (l *Level) Categories(filter *CategoryFilter, sort *Sorting) ([]*Category, *Error) {
 	var collection *CategoryCollection
+	var err *Error
 
 	if l.CategoriesData == nil {
-		collection = fetchCategoriesLink(firstLink(l, "categories"), filter, sort)
+		collection, err = fetchCategoriesLink(firstLink(l, "categories"), filter, sort)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		collection = toCategoryCollection(l.CategoriesData)
 	}
 
-	return collection.categories()
+	return collection.categories(), nil
 }
 
 // Variables extracts the embedded variables, if possible, otherwise it will
 // fetch them by doing one additional request. sort is only relevant when the
 // variables are not already embedded.
-func (l *Level) Variables(sort *Sorting) []*Variable {
+func (l *Level) Variables(sort *Sorting) ([]*Variable, *Error) {
 	var collection *VariableCollection
+	var err *Error
 
 	if l.VariablesData == nil {
-		collection = fetchVariablesLink(firstLink(l, "variables"), nil, sort)
+		collection, err = fetchVariablesLink(firstLink(l, "variables"), nil, sort)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		collection = toVariableCollection(l.VariablesData)
 	}
 
-	return collection.variables()
+	return collection.variables(), nil
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the level.
 // The result can be nil.
-func (l *Level) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
+func (l *Level) PrimaryLeaderboard(options *LeaderboardOptions) (*Leaderboard, *Error) {
 	return fetchLeaderboardLink(firstLink(l, "leaderboard"), options)
 }
 
 // Records fetches a list of leaderboards for the level, assuming the default
 // category. This function always returns a LeaderboardCollection.
-func (l *Level) Records(filter *LeaderboardFilter) *LeaderboardCollection {
+func (l *Level) Records(filter *LeaderboardFilter) (*LeaderboardCollection, *Error) {
 	return fetchLeaderboardsLink(firstLink(l, "records"), filter, nil)
 }
 
 // Runs fetches a list of runs done in the given level and its default category,
 // optionally filtered and sorted. This function always returns a RunCollection.
-func (l *Level) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+func (l *Level) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
 	return fetchRunsLink(firstLink(l, "runs"), filter, sort)
 }
 
@@ -163,7 +171,7 @@ func (lc *LevelCollection) fetchLink(name string) (*LevelCollection, *Error) {
 		return &LevelCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchLevels(next.request(nil, nil))
+	return fetchLevelsLink(next, nil, nil)
 }
 
 // fetchLevel fetches a single level from the network. If the request failed,
@@ -195,11 +203,10 @@ func fetchLevels(request request) (*LevelCollection, *Error) {
 // fetchLevelsLink tries to fetch a given link and interpret the response as
 // a list of levels. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchLevelsLink(link requestable, filter filter, sort *Sorting) *LevelCollection {
-	if link == nil {
-		return &LevelCollection{}
+func fetchLevelsLink(link requestable, filter filter, sort *Sorting) (*LevelCollection, *Error) {
+	if !link.exists() {
+		return &LevelCollection{}, nil
 	}
 
-	collection, _ := fetchLevels(link.request(filter, sort))
-	return collection
+	return fetchLevels(link.request(filter, sort))
 }

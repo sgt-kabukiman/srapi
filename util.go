@@ -68,7 +68,7 @@ func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 // recastToModerators returns a list of users that are moderators of the series.
 // If moderators were not embedded, they will be fetched individually from the
 // network.
-func recastToModerators(data interface{}) []*User {
+func recastToModerators(data interface{}) ([]*User, *Error) {
 	// we have a simple map between user IDs and mod levels
 	assertedMap, okay := data.(map[string]interface{})
 	if okay {
@@ -76,15 +76,17 @@ func recastToModerators(data interface{}) []*User {
 
 		for userID := range assertedMap {
 			user, err := UserByID(userID)
-			if err == nil {
-				result = append(result, user)
+			if err != nil {
+				return result, err
 			}
+
+			result = append(result, user)
 		}
 
-		return result
+		return result, nil
 	}
 
-	return toUserCollection(data).users()
+	return toUserCollection(data).users(), nil
 }
 
 // recastToPlayerList casts a player blob into a list of players.

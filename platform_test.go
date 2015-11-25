@@ -29,7 +29,6 @@ func TestPlatforms(t *testing.T) {
 	Convey("Fetching multiple platforms", t, func() {
 		Convey("starting from the beginning", func() {
 			platforms, err := Platforms(nil, nil)
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldNotBeEmpty)
 			So(platforms.Pagination.Offset, ShouldEqual, 0)
@@ -42,7 +41,6 @@ func TestPlatforms(t *testing.T) {
 
 		Convey("skipping the first few", func() {
 			platforms, err := Platforms(nil, &Cursor{2, 0})
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldNotBeEmpty)
 			So(platforms.Pagination.Offset, ShouldEqual, 2)
@@ -56,7 +54,6 @@ func TestPlatforms(t *testing.T) {
 
 		Convey("limited to just a few", func() {
 			platforms, err := Platforms(nil, &Cursor{0, 3})
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldHaveLength, 3)
 			So(platforms.Pagination.Offset, ShouldEqual, 0)
@@ -71,28 +68,24 @@ func TestPlatforms(t *testing.T) {
 
 		Convey("paging through the platforms", func() {
 			platforms, err := Platforms(nil, &Cursor{0, 1})
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldHaveLength, 1)
 			So(platforms.Pagination.Offset, ShouldEqual, 0)
 			So(platforms.Pagination.Max, ShouldEqual, 1)
 
 			platforms, err = platforms.NextPage()
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldHaveLength, 1)
 			So(platforms.Pagination.Offset, ShouldEqual, 1)
 			So(platforms.Pagination.Max, ShouldEqual, 1)
 
 			platforms, err = platforms.NextPage()
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldHaveLength, 1)
 			So(platforms.Pagination.Offset, ShouldEqual, 2)
 			So(platforms.Pagination.Max, ShouldEqual, 1)
 
 			platforms, err = platforms.PrevPage()
-
 			So(err, ShouldBeNil)
 			So(platforms.Data, ShouldHaveLength, 1)
 			So(platforms.Pagination.Offset, ShouldEqual, 1)
@@ -103,7 +96,6 @@ func TestPlatforms(t *testing.T) {
 			platforms, err := Platforms(nil, nil)
 
 			platforms, err = platforms.PrevPage()
-
 			So(err, ShouldNotBeNil)
 			So(platforms, ShouldNotBeNil)
 		})
@@ -113,7 +105,7 @@ func TestPlatforms(t *testing.T) {
 		platform, err := PlatformByID("o232q83p") // Gameboy
 		So(err, ShouldBeNil)
 
-		runs := platform.Runs(nil, nil)
+		runs, err := platform.Runs(nil, nil)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -125,7 +117,7 @@ func TestPlatforms(t *testing.T) {
 			firstID = runs.Data[0].ID
 		})
 
-		runs = platform.Runs(nil, &Sorting{Direction: Descending})
+		runs, err = platform.Runs(nil, &Sorting{Direction: Descending})
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
@@ -139,7 +131,7 @@ func TestPlatforms(t *testing.T) {
 		platform, err := PlatformByID("o232q83p") // Gameboy
 		So(err, ShouldBeNil)
 
-		games := platform.Games(nil, nil)
+		games, err := platform.Games(nil, nil)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -151,7 +143,7 @@ func TestPlatforms(t *testing.T) {
 			firstID = games.Data[0].ID
 		})
 
-		games = platform.Games(nil, &Sorting{Direction: Descending})
+		games, err = platform.Games(nil, &Sorting{Direction: Descending})
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {

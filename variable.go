@@ -49,13 +49,13 @@ func VariableByID(id string) (*Variable, *Error) {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (v *Variable) Game() *Game {
+func (v *Variable) Game() (*Game, *Error) {
 	return fetchGameLink(firstLink(v, "game"))
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the category by doing one additional request. This can return nil.
-func (v *Variable) Category() *Category {
+func (v *Variable) Category() (*Category, *Error) {
 	return fetchCategoryLink(firstLink(v, "category"))
 }
 
@@ -107,7 +107,7 @@ func (vc *VariableCollection) fetchLink(name string) (*VariableCollection, *Erro
 		return &VariableCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchVariables(next.request(nil, nil))
+	return fetchVariablesLink(next, nil, nil)
 }
 
 // fetchVariable fetches a single variable from the network. If the request
@@ -139,11 +139,10 @@ func fetchVariables(request request) (*VariableCollection, *Error) {
 // fetchVariablesLink tries to fetch a given link and interpret the response as
 // a list of variables. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchVariablesLink(link requestable, filter filter, sort *Sorting) *VariableCollection {
-	if link == nil {
-		return &VariableCollection{}
+func fetchVariablesLink(link requestable, filter filter, sort *Sorting) (*VariableCollection, *Error) {
+	if !link.exists() {
+		return &VariableCollection{}, nil
 	}
 
-	collection, _ := fetchVariables(link.request(filter, sort))
-	return collection
+	return fetchVariables(link.request(filter, sort))
 }

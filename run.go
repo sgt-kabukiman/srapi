@@ -117,89 +117,84 @@ func RunByID(id string) (*Run, *Error) {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (r *Run) Game() *Game {
+func (r *Run) Game() (*Game, *Error) {
 	// we only have the game ID at hand
 	asserted, okay := r.GameData.(string)
 	if okay {
-		game, _ := GameByID(asserted)
-		return game
+		return GameByID(asserted)
 	}
 
-	return toGame(r.GameData)
+	return toGame(r.GameData), nil
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the game by doing one additional request. If nothing on the server side is
 // fubar, then this function should never return nil.
-func (r *Run) Category() *Category {
+func (r *Run) Category() (*Category, *Error) {
 	if r.CategoryData == nil { // should never happen
-		return nil
+		return nil, nil
 	}
 
 	// we only have the category ID at hand
 	asserted, okay := r.CategoryData.(string)
 	if okay {
-		category, _ := CategoryByID(asserted)
-		return category
+		return CategoryByID(asserted)
 	}
 
-	return toCategory(r.CategoryData)
+	return toCategory(r.CategoryData), nil
 }
 
 // Level extracts the embedded level, if possible, otherwise it will fetch
 // the game by doing one additional request. It's possible for runs to not have
 // levels, so this function can return nil for full-game runs.
-func (r *Run) Level() *Level {
+func (r *Run) Level() (*Level, *Error) {
 	if r.LevelData == nil {
-		return nil
+		return nil, nil
 	}
 
 	// we only have the level ID at hand
 	asserted, okay := r.LevelData.(string)
 	if okay {
-		level, _ := LevelByID(asserted)
-		return level
+		return LevelByID(asserted)
 	}
 
-	return toLevel(r.LevelData)
+	return toLevel(r.LevelData), nil
 }
 
 // Platform extracts the embedded platform, if possible, otherwise it will fetch
 // the game by doing one additional request. Some runs don't have platforms
 // attached, so this can return nil.
-func (r *Run) Platform() *Platform {
+func (r *Run) Platform() (*Platform, *Error) {
 	if r.PlatformData == nil {
 		if len(r.System.Platform) > 0 {
-			platform, _ := PlatformByID(r.System.Platform)
-			return platform
+			return PlatformByID(r.System.Platform)
 		}
 
-		return nil
+		return nil, nil
 	}
 
-	return toPlatform(r.PlatformData)
+	return toPlatform(r.PlatformData), nil
 }
 
 // Region extracts the embedded region, if possible, otherwise it will fetch
 // the game by doing one additional request. Some runs don't have regions
 // attached, so this can return nil.
-func (r *Run) Region() *Region {
+func (r *Run) Region() (*Region, *Error) {
 	if r.RegionData == nil {
 		if len(r.System.Region) > 0 {
-			region, _ := RegionByID(r.System.Region)
-			return region
+			return RegionByID(r.System.Region)
 		}
 
-		return nil
+		return nil, nil
 	}
 
-	return toRegion(r.RegionData)
+	return toRegion(r.RegionData), nil
 }
 
 // Players returns a list of all players that aparticipated in this run.
 // If they have not been embedded, they are fetched individually from the
 // network, one request per player.
-func (r *Run) Players() []*Player {
+func (r *Run) Players() ([]*Player, *Error) {
 	var result []*Player
 
 	switch asserted := r.PlayersData.(type) {
@@ -209,23 +204,26 @@ func (r *Run) Players() []*Player {
 
 		if recast(asserted, &tmp) == nil {
 			for _, link := range tmp {
-				if player := link.fetch(); player != nil {
-					result = append(result, player)
+				player, err := link.fetch()
+				if err != nil {
+					return result, err
 				}
+
+				result = append(result, player)
 			}
 		}
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		return recastToPlayerList(r.PlayersData)
+		result = recastToPlayerList(r.PlayersData)
 	}
 
-	return result
+	return result, nil
 }
 
 // Examiner returns the user that examined the run after submission. This can
 // be nil, especially for new runs.
-func (r *Run) Examiner() *User {
+func (r *Run) Examiner() (*User, *Error) {
 	return fetchUserLink(firstLink(r, "examiner"))
 }
 
@@ -365,7 +363,7 @@ func (rc *RunCollection) fetchLink(name string) (*RunCollection, *Error) {
 		return &RunCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchRuns(next.request(nil, nil))
+	return fetchRunsLink(next, nil, nil)
 }
 
 // fetchRun fetches a single run from the network. If the request failed,
@@ -398,11 +396,10 @@ func fetchRuns(request request) (*RunCollection, *Error) {
 // fetchRunsLink tries to fetch a given link and interpret the response as
 // a list of runs. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchRunsLink(link requestable, filter filter, sort *Sorting) *RunCollection {
-	if link == nil {
-		return &RunCollection{}
+func fetchRunsLink(link requestable, filter filter, sort *Sorting) (*RunCollection, *Error) {
+	if !link.exists() {
+		return &RunCollection{}, nil
 	}
 
-	collection, _ := fetchRuns(link.request(filter, sort))
-	return collection
+	return fetchRuns(link.request(filter, sort))
 }

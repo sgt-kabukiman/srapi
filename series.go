@@ -54,7 +54,7 @@ func SeriesByAbbreviation(abbrev string) (*Series, *Error) {
 }
 
 // Games fetches the list of games for the series, optionally filtering it.
-func (s *Series) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+func (s *Series) Games(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
 	return fetchGamesLink(firstLink(s, "games"), filter, sort)
 }
 
@@ -70,7 +70,7 @@ func (s *Series) ModeratorMap() map[string]GameModLevel {
 // Moderators returns a list of users that are moderators of the series. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
-func (s *Series) Moderators() []*User {
+func (s *Series) Moderators() ([]*User, *Error) {
 	return recastToModerators(s.ModeratorsData)
 }
 
@@ -177,13 +177,12 @@ func fetchOneSeries(request request) (*Series, *Error) {
 // fetchOneSeriesLink tries to fetch a given link and interpret the response as
 // a single series. If the link is nil or the series could not be fetched,
 // nil is returned.
-func fetchOneSeriesLink(link requestable) *Series {
-	if link == nil {
-		return nil
+func fetchOneSeriesLink(link requestable) (*Series, *Error) {
+	if !link.exists() {
+		return nil, nil
 	}
 
-	series, _ := fetchOneSeries(link.request(nil, nil))
-	return series
+	return fetchOneSeries(link.request(nil, nil))
 }
 
 // fetchManySeries fetches a list of series from the network. It always

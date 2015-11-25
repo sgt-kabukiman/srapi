@@ -40,7 +40,7 @@ func GuestByName(name string) (*Guest, *Error) {
 
 // Runs fetches a list of runs done by the guest, optionally filtered and sorted.
 // This function always returns a RunCollection.
-func (g *Guest) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+func (g *Guest) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
 	return fetchRunsLink(firstLink(g, "runs"), filter, sort)
 }
 
@@ -65,11 +65,10 @@ func fetchGuest(request request) (*Guest, *Error) {
 // fetchGuestLink tries to fetch a given link and interpret the response as
 // a single guest. If the link is nil or the guest could not be fetched,
 // nil is returned.
-func fetchGuestLink(link requestable) *Guest {
-	if link == nil {
-		return nil
+func fetchGuestLink(link requestable) (*Guest, *Error) {
+	if !link.exists() {
+		return nil, nil
 	}
 
-	guest, _ := fetchGuest(link.request(nil, nil))
-	return guest
+	return fetchGuest(link.request(nil, nil))
 }

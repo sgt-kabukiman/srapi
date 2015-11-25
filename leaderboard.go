@@ -91,7 +91,12 @@ func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions)
 	}
 
 	if game == nil {
-		game = cat.Game()
+		var err *Error
+
+		game, err = cat.Game()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/category/" + cat.ID, options, nil, nil})
@@ -116,7 +121,12 @@ func LevelLeaderboard(game *Game, cat *Category, level *Level, options *Leaderbo
 	}
 
 	if game == nil {
-		game = level.Game()
+		var err *Error
+
+		game, err = level.Game()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/level/" + level.ID + "/" + cat.ID, options, nil, nil})
@@ -125,47 +135,44 @@ func LevelLeaderboard(game *Game, cat *Category, level *Level, options *Leaderbo
 // Game returns the game that the leaderboard is for. If it was not embedded, it
 // is fetched from the network. Except for broken data on speedrun.com, this
 // should never return nil.
-func (lb *Leaderboard) Game() *Game {
+func (lb *Leaderboard) Game() (*Game, *Error) {
 	// we only have the game ID at hand
 	asserted, okay := lb.GameData.(string)
 	if okay {
-		game, _ := GameByID(asserted)
-		return game
+		return GameByID(asserted)
 	}
 
-	return toGame(lb.GameData)
+	return toGame(lb.GameData), nil
 }
 
 // Category returns the category that the leaderboard is for. If it was not
 // embedded, it is fetched from the network. Except for broken data on
 // speedrun.com, this should never return nil.
-func (lb *Leaderboard) Category() *Category {
+func (lb *Leaderboard) Category() (*Category, *Error) {
 	// we only have the category ID at hand
 	asserted, okay := lb.CategoryData.(string)
 	if okay {
-		category, _ := CategoryByID(asserted)
-		return category
+		return CategoryByID(asserted)
 	}
 
-	return toCategory(lb.CategoryData)
+	return toCategory(lb.CategoryData), nil
 }
 
 // Level returns the level that the leaderboard is for. If it's a full-game
 // leaderboard, nil is returned. If the level was not embedded, it is fetched
 // from the network.
-func (lb *Leaderboard) Level() *Level {
+func (lb *Leaderboard) Level() (*Level, *Error) {
 	if lb.LevelData == nil {
-		return nil
+		return nil, nil
 	}
 
 	// we only have the level ID at hand
 	asserted, okay := lb.LevelData.(string)
 	if okay {
-		level, _ := LevelByID(asserted)
-		return level
+		return LevelByID(asserted)
 	}
 
-	return toLevel(lb.LevelData)
+	return toLevel(lb.LevelData), nil
 }
 
 // Platforms returns a list of all platforms that are used in the leaderboard.
@@ -347,7 +354,7 @@ func (lc *LeaderboardCollection) fetchLink(name string) (*LeaderboardCollection,
 		return &LeaderboardCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchLeaderboards(next.request(nil, nil))
+	return fetchLeaderboardsLink(next, nil, nil)
 }
 
 // fetchLeaderboard fetches a single leaderboard from the network. If the request
@@ -366,13 +373,12 @@ func fetchLeaderboard(request request) (*Leaderboard, *Error) {
 // fetchLeaderboardLink tries to fetch a given link and interpret the response as
 // a single leaderboard. If the link is nil or the leaderboard could not be fetched,
 // nil is returned.
-func fetchLeaderboardLink(link requestable, options *LeaderboardOptions) *Leaderboard {
-	if link == nil {
-		return nil
+func fetchLeaderboardLink(link requestable, options *LeaderboardOptions) (*Leaderboard, *Error) {
+	if !link.exists() {
+		return nil, nil
 	}
 
-	leaderboard, _ := fetchLeaderboard(link.request(options, nil))
-	return leaderboard
+	return fetchLeaderboard(link.request(options, nil))
 }
 
 // fetchLeaderboards fetches a list of leaderboards from the network. It always
@@ -391,11 +397,10 @@ func fetchLeaderboards(request request) (*LeaderboardCollection, *Error) {
 // fetchLeaderboardsLink tries to fetch a given link and interpret the response as
 // a list of leaderboards. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchLeaderboardsLink(link requestable, filter filter, sort *Sorting) *LeaderboardCollection {
-	if link == nil {
-		return &LeaderboardCollection{}
+func fetchLeaderboardsLink(link requestable, filter filter, sort *Sorting) (*LeaderboardCollection, *Error) {
+	if !link.exists() {
+		return &LeaderboardCollection{}, nil
 	}
 
-	collection, _ := fetchLeaderboards(link.request(filter, sort))
-	return collection
+	return fetchLeaderboards(link.request(filter, sort))
 }

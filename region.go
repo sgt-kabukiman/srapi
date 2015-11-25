@@ -50,13 +50,13 @@ func RegionByID(id string) (*Region, *Error) {
 
 // Runs fetches a list of runs done in the region, optionally filtered and
 // sorted. This function always returns a RunCollection.
-func (r *Region) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+func (r *Region) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
 	return fetchRunsLink(firstLink(r, "runs"), filter, sort)
 }
 
 // Games fetches a list of games available in the region, optionally filtered
 // and sorted. This function always returns a GameCollection.
-func (r *Region) Games(filter *GameFilter, sort *Sorting) *GameCollection {
+func (r *Region) Games(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
 	return fetchGamesLink(firstLink(r, "games"), filter, sort)
 }
 

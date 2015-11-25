@@ -89,31 +89,20 @@ func UserByID(id string) (*User, *Error) {
 
 // Runs fetches a list of runs done by the user, optionally filtered
 // and sorted. This function always returns a RunCollection.
-func (u *User) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+func (u *User) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
 	return fetchRunsLink(firstLink(u, "runs"), filter, sort)
 }
 
 // ModeratedGames fetches a list of games moderated by the user, optionally
 // filtered and sorted. This function always returns a GameCollection.
-func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting) *GameCollection {
+func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
 	return fetchGamesLink(firstLink(u, "games"), filter, sort)
 }
 
 // PersonalBests fetches a list of PBs by the user, optionally filtered and
 // sorted.
-func (u *User) PersonalBests(filter *PersonalBestFilter) []*PersonalBest {
-	link := firstLink(u, "personal-bests")
-	if link == nil {
-		return make([]*PersonalBest, 0)
-	}
-
-	tmp := personalBestsResponse{}
-	err := httpClient.do(link.request(filter, nil), &tmp)
-	if err != nil {
-		return make([]*PersonalBest, 0)
-	}
-
-	return tmp.personalBests()
+func (u *User) PersonalBests(filter *PersonalBestFilter) ([]*PersonalBest, *Error) {
+	return fetchPersonalBestsLink(firstLink(u, "personal-bests"), filter)
 }
 
 // for the 'hasLinks' interface
@@ -235,13 +224,12 @@ func fetchUser(request request) (*User, *Error) {
 // fetchUserLink tries to fetch a given link and interpret the response as
 // a single user. If the link is nil or the user could not be fetched,
 // nil is returned.
-func fetchUserLink(link requestable) *User {
-	if link == nil {
-		return nil
+func fetchUserLink(link requestable) (*User, *Error) {
+	if !link.exists() {
+		return nil, nil
 	}
 
-	user, _ := fetchUser(link.request(nil, nil))
-	return user
+	return fetchUser(link.request(nil, nil))
 }
 
 // fetchUsers fetches a list of users from the network. It always

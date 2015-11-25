@@ -77,45 +77,49 @@ func CategoryByID(id string) (*Category, *Error) {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (c *Category) Game() *Game {
+func (c *Category) Game() (*Game, *Error) {
 	if c.GameData == nil {
 		return fetchGameLink(firstLink(c, "game"))
 	}
 
-	return toGame(c.GameData)
+	return toGame(c.GameData), nil
 }
 
 // Variables extracts the embedded variables, if possible, otherwise it will
 // fetch them by doing one additional request. sort is only relevant when the
 // variables are not already embedded.
-func (c *Category) Variables(sort *Sorting) []*Variable {
+func (c *Category) Variables(sort *Sorting) ([]*Variable, *Error) {
 	var collection *VariableCollection
+	var err *Error
 
 	if c.VariablesData == nil {
-		collection = fetchVariablesLink(firstLink(c, "variables"), nil, sort)
+		collection, err = fetchVariablesLink(firstLink(c, "variables"), nil, sort)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		collection = toVariableCollection(c.VariablesData)
 	}
 
-	return collection.variables()
+	return collection.variables(), nil
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the category.
 // The result can be nil.
-func (c *Category) PrimaryLeaderboard(options *LeaderboardOptions) *Leaderboard {
+func (c *Category) PrimaryLeaderboard(options *LeaderboardOptions) (*Leaderboard, *Error) {
 	return fetchLeaderboardLink(firstLink(c, "leaderboard"), options)
 }
 
 // Records fetches a list of leaderboards for the category. For full-game
 // categories, the list will contain one leaderboard, otherwise it will have one
 // per level. This function always returns a LeaderboardCollection.
-func (c *Category) Records(filter *LeaderboardFilter) *LeaderboardCollection {
+func (c *Category) Records(filter *LeaderboardFilter) (*LeaderboardCollection, *Error) {
 	return fetchLeaderboardsLink(firstLink(c, "records"), filter, nil)
 }
 
 // Runs fetches a list of runs done in the given category, optionally filtered
 // and sorted. This function always returns a RunCollection.
-func (c *Category) Runs(filter *RunFilter, sort *Sorting) *RunCollection {
+func (c *Category) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
 	return fetchRunsLink(firstLink(c, "records"), filter, sort)
 }
 
@@ -185,7 +189,7 @@ func (cc *CategoryCollection) fetchLink(name string) (*CategoryCollection, *Erro
 		return &CategoryCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchCategories(next.request(nil, nil))
+	return fetchCategoriesLink(next, nil, nil)
 }
 
 // fetchCategory fetches a single category from the network. If the request failed,
@@ -204,13 +208,12 @@ func fetchCategory(request request) (*Category, *Error) {
 // fetchCategoryLink tries to fetch a given link and interpret the response as
 // a single category. If the link is nil or the category could not be fetched,
 // nil is returned.
-func fetchCategoryLink(link requestable) *Category {
-	if link == nil {
-		return nil
+func fetchCategoryLink(link requestable) (*Category, *Error) {
+	if !link.exists() {
+		return nil, nil
 	}
 
-	category, _ := fetchCategory(link.request(nil, nil))
-	return category
+	return fetchCategory(link.request(nil, nil))
 }
 
 // fetchCategories fetches a list of categories from the network. It always
@@ -229,11 +232,10 @@ func fetchCategories(request request) (*CategoryCollection, *Error) {
 // fetchCategoriesLink tries to fetch a given link and interpret the response as
 // a list of categories. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchCategoriesLink(link requestable, filter filter, sort *Sorting) *CategoryCollection {
-	if link == nil {
-		return &CategoryCollection{}
+func fetchCategoriesLink(link requestable, filter filter, sort *Sorting) (*CategoryCollection, *Error) {
+	if !link.exists() {
+		return &CategoryCollection{}, nil
 	}
 
-	collection, _ := fetchCategories(link.request(filter, sort))
-	return collection
+	return fetchCategories(link.request(filter, sort))
 }
