@@ -33,14 +33,14 @@ func TestVariables(t *testing.T) {
 	})
 
 	Convey("Fetch the game the variable belongs to", t, func() {
-		game, err := seedVar.Game()
+		game, err := seedVar.Game(NoEmbeds)
 		So(err, ShouldBeNil)
 		So(game, ShouldNotBeNil)
 		So(game.Names.International, ShouldEqual, "Grand Theft Auto: Vice City Chaos%")
 	})
 
 	Convey("Fetch the category the variable belongs to", t, func() {
-		category, err := seedVar.Category()
+		category, err := seedVar.Category(NoEmbeds)
 		So(err, ShouldBeNil)
 		So(category, ShouldBeNil)
 
@@ -48,7 +48,7 @@ func TestVariables(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(variable, ShouldNotBeNil)
 
-		category, err = variable.Category()
+		category, err = variable.Category(NoEmbeds)
 		So(err, ShouldBeNil)
 		So(category, ShouldNotBeNil)
 		So(category.Name, ShouldEqual, "Any%")

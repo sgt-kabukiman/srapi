@@ -81,7 +81,7 @@ type leaderboardResponse struct {
 // its full-game categories. An error is returned if no category is given or if
 // a per-level category is given. If no game is given, it is fetched automatically,
 // but if you have it already at hand, you can save one request by specifying it.
-func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions) (*Leaderboard, *Error) {
+func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
 	if cat == nil {
 		return nil, &Error{"", "", ErrorBadLogic, "No category given."}
 	}
@@ -93,13 +93,13 @@ func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions)
 	if game == nil {
 		var err *Error
 
-		game, err = cat.Game()
+		game, err = cat.Game("")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/category/" + cat.ID, options, nil, nil})
+	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/category/" + cat.ID, options, nil, nil, embeds})
 }
 
 // LevelLeaderboard retrieves a the leaderboard for a specific game and one of
@@ -107,7 +107,7 @@ func FullGameLeaderboard(game *Game, cat *Category, options *LeaderboardOptions)
 // level is given or if a full-game category is given. If no game is given, it
 // is fetched automatically, but if you have it already at hand, you can save
 // one request by specifying it.
-func LevelLeaderboard(game *Game, cat *Category, level *Level, options *LeaderboardOptions) (*Leaderboard, *Error) {
+func LevelLeaderboard(game *Game, cat *Category, level *Level, options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
 	if cat == nil {
 		return nil, &Error{"", "", ErrorBadLogic, "No category given."}
 	}
@@ -123,23 +123,23 @@ func LevelLeaderboard(game *Game, cat *Category, level *Level, options *Leaderbo
 	if game == nil {
 		var err *Error
 
-		game, err = level.Game()
+		game, err = level.Game("")
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/level/" + level.ID + "/" + cat.ID, options, nil, nil})
+	return fetchLeaderboard(request{"GET", "/leaderboards/" + game.ID + "/level/" + level.ID + "/" + cat.ID, options, nil, nil, embeds})
 }
 
 // Game returns the game that the leaderboard is for. If it was not embedded, it
 // is fetched from the network. Except for broken data on speedrun.com, this
 // should never return nil.
-func (lb *Leaderboard) Game() (*Game, *Error) {
+func (lb *Leaderboard) Game(embeds string) (*Game, *Error) {
 	// we only have the game ID at hand
 	asserted, okay := lb.GameData.(string)
 	if okay {
-		return GameByID(asserted)
+		return GameByID(asserted, embeds)
 	}
 
 	return toGame(lb.GameData), nil
@@ -148,11 +148,11 @@ func (lb *Leaderboard) Game() (*Game, *Error) {
 // Category returns the category that the leaderboard is for. If it was not
 // embedded, it is fetched from the network. Except for broken data on
 // speedrun.com, this should never return nil.
-func (lb *Leaderboard) Category() (*Category, *Error) {
+func (lb *Leaderboard) Category(embeds string) (*Category, *Error) {
 	// we only have the category ID at hand
 	asserted, okay := lb.CategoryData.(string)
 	if okay {
-		return CategoryByID(asserted)
+		return CategoryByID(asserted, embeds)
 	}
 
 	return toCategory(lb.CategoryData), nil
@@ -161,7 +161,7 @@ func (lb *Leaderboard) Category() (*Category, *Error) {
 // Level returns the level that the leaderboard is for. If it's a full-game
 // leaderboard, nil is returned. If the level was not embedded, it is fetched
 // from the network.
-func (lb *Leaderboard) Level() (*Level, *Error) {
+func (lb *Leaderboard) Level(embeds string) (*Level, *Error) {
 	if lb.LevelData == nil {
 		return nil, nil
 	}
@@ -169,7 +169,7 @@ func (lb *Leaderboard) Level() (*Level, *Error) {
 	// we only have the level ID at hand
 	asserted, okay := lb.LevelData.(string)
 	if okay {
-		return LevelByID(asserted)
+		return LevelByID(asserted, embeds)
 	}
 
 	return toLevel(lb.LevelData), nil
@@ -354,7 +354,7 @@ func (lc *LeaderboardCollection) fetchLink(name string) (*LeaderboardCollection,
 		return &LeaderboardCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchLeaderboardsLink(next, nil, nil)
+	return fetchLeaderboardsLink(next, nil, nil, "")
 }
 
 // fetchLeaderboard fetches a single leaderboard from the network. If the request
@@ -373,12 +373,12 @@ func fetchLeaderboard(request request) (*Leaderboard, *Error) {
 // fetchLeaderboardLink tries to fetch a given link and interpret the response as
 // a single leaderboard. If the link is nil or the leaderboard could not be fetched,
 // nil is returned.
-func fetchLeaderboardLink(link requestable, options *LeaderboardOptions) (*Leaderboard, *Error) {
+func fetchLeaderboardLink(link requestable, options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
 	if !link.exists() {
 		return nil, nil
 	}
 
-	return fetchLeaderboard(link.request(options, nil))
+	return fetchLeaderboard(link.request(options, nil, embeds))
 }
 
 // fetchLeaderboards fetches a list of leaderboards from the network. It always
@@ -397,10 +397,10 @@ func fetchLeaderboards(request request) (*LeaderboardCollection, *Error) {
 // fetchLeaderboardsLink tries to fetch a given link and interpret the response as
 // a list of leaderboards. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchLeaderboardsLink(link requestable, filter filter, sort *Sorting) (*LeaderboardCollection, *Error) {
+func fetchLeaderboardsLink(link requestable, filter filter, sort *Sorting, embeds string) (*LeaderboardCollection, *Error) {
 	if !link.exists() {
 		return &LeaderboardCollection{}, nil
 	}
 
-	return fetchLeaderboards(link.request(filter, sort))
+	return fetchLeaderboards(link.request(filter, sort, embeds))
 }

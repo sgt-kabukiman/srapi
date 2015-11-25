@@ -35,13 +35,13 @@ type guestResponse struct {
 // GuestByName tries to fetch a single guest, identified by their name.
 // When an error is returned, the returned guest is nil.
 func GuestByName(name string) (*Guest, *Error) {
-	return fetchGuest(request{"GET", "/guests/" + url.QueryEscape(name), nil, nil, nil})
+	return fetchGuest(request{"GET", "/guests/" + url.QueryEscape(name), nil, nil, nil, ""})
 }
 
 // Runs fetches a list of runs done by the guest, optionally filtered and sorted.
 // This function always returns a RunCollection.
-func (g *Guest) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(g, "runs"), filter, sort)
+func (g *Guest) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(g, "runs"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -70,5 +70,5 @@ func fetchGuestLink(link requestable) (*Guest, *Error) {
 		return nil, nil
 	}
 
-	return fetchGuest(link.request(nil, nil))
+	return fetchGuest(link.request(nil, nil, ""))
 }

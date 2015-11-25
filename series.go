@@ -40,8 +40,8 @@ type seriesResponse struct {
 
 // SeriesByID tries to fetch a single series, identified by its ID.
 // When an error is returned, the returned series is nil.
-func SeriesByID(id string) (*Series, *Error) {
-	return fetchOneSeries(request{"GET", "/series/" + id, nil, nil, nil})
+func SeriesByID(id string, embeds string) (*Series, *Error) {
+	return fetchOneSeries(request{"GET", "/series/" + id, nil, nil, nil, embeds})
 }
 
 // SeriesByAbbreviation tries to fetch a single series, identified by its
@@ -49,13 +49,13 @@ func SeriesByID(id string) (*Series, *Error) {
 // change (in constrast to the ID, which is fixed), it should be used with
 // caution.
 // When an error is returned, the returned series is nil.
-func SeriesByAbbreviation(abbrev string) (*Series, *Error) {
-	return SeriesByID(abbrev)
+func SeriesByAbbreviation(abbrev string, embeds string) (*Series, *Error) {
+	return SeriesByID(abbrev, embeds)
 }
 
 // Games fetches the list of games for the series, optionally filtering it.
-func (s *Series) Games(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
-	return fetchGamesLink(firstLink(s, "games"), filter, sort)
+func (s *Series) Games(filter *GameFilter, sort *Sorting, embeds string) (*GameCollection, *Error) {
+	return fetchGamesLink(firstLink(s, "games"), filter, sort, embeds)
 }
 
 // ModeratorMap returns a map of user IDs to their respective moderation levels.
@@ -119,8 +119,8 @@ type SeriesCollection struct {
 }
 
 // ManySeries retrieves a collection of series.
-func ManySeries(f *SeriesFilter, s *Sorting, c *Cursor) (*SeriesCollection, *Error) {
-	return fetchManySeries(request{"GET", "/series", f, s, c})
+func ManySeries(f *SeriesFilter, s *Sorting, c *Cursor, embeds string) (*SeriesCollection, *Error) {
+	return fetchManySeries(request{"GET", "/series", f, s, c, embeds})
 }
 
 // series returns a list of pointers to the series; used for cases where there is
@@ -158,7 +158,7 @@ func (sc *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error) {
 		return &SeriesCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchManySeries(next.request(nil, nil))
+	return fetchManySeries(next.request(nil, nil, ""))
 }
 
 // fetchOneSeries fetches a single series from the network. If the request failed,
@@ -177,12 +177,12 @@ func fetchOneSeries(request request) (*Series, *Error) {
 // fetchOneSeriesLink tries to fetch a given link and interpret the response as
 // a single series. If the link is nil or the series could not be fetched,
 // nil is returned.
-func fetchOneSeriesLink(link requestable) (*Series, *Error) {
+func fetchOneSeriesLink(link requestable, embeds string) (*Series, *Error) {
 	if !link.exists() {
 		return nil, nil
 	}
 
-	return fetchOneSeries(link.request(nil, nil))
+	return fetchOneSeries(link.request(nil, nil, embeds))
 }
 
 // fetchManySeries fetches a list of series from the network. It always

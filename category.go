@@ -70,16 +70,16 @@ type categoryResponse struct {
 
 // CategoryByID tries to fetch a single category, identified by its ID.
 // When an error is returned, the returned category is nil.
-func CategoryByID(id string) (*Category, *Error) {
-	return fetchCategory(request{"GET", "/categories/" + id, nil, nil, nil})
+func CategoryByID(id string, embeds string) (*Category, *Error) {
+	return fetchCategory(request{"GET", "/categories/" + id, nil, nil, nil, embeds})
 }
 
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (c *Category) Game() (*Game, *Error) {
+func (c *Category) Game(embeds string) (*Game, *Error) {
 	if c.GameData == nil {
-		return fetchGameLink(firstLink(c, "game"))
+		return fetchGameLink(firstLink(c, "game"), embeds)
 	}
 
 	return toGame(c.GameData), nil
@@ -106,21 +106,21 @@ func (c *Category) Variables(sort *Sorting) ([]*Variable, *Error) {
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the category.
 // The result can be nil.
-func (c *Category) PrimaryLeaderboard(options *LeaderboardOptions) (*Leaderboard, *Error) {
-	return fetchLeaderboardLink(firstLink(c, "leaderboard"), options)
+func (c *Category) PrimaryLeaderboard(options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
+	return fetchLeaderboardLink(firstLink(c, "leaderboard"), options, embeds)
 }
 
 // Records fetches a list of leaderboards for the category. For full-game
 // categories, the list will contain one leaderboard, otherwise it will have one
 // per level. This function always returns a LeaderboardCollection.
-func (c *Category) Records(filter *LeaderboardFilter) (*LeaderboardCollection, *Error) {
-	return fetchLeaderboardsLink(firstLink(c, "records"), filter, nil)
+func (c *Category) Records(filter *LeaderboardFilter, embeds string) (*LeaderboardCollection, *Error) {
+	return fetchLeaderboardsLink(firstLink(c, "records"), filter, nil, embeds)
 }
 
 // Runs fetches a list of runs done in the given category, optionally filtered
 // and sorted. This function always returns a RunCollection.
-func (c *Category) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(c, "records"), filter, sort)
+func (c *Category) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(c, "records"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -189,7 +189,7 @@ func (cc *CategoryCollection) fetchLink(name string) (*CategoryCollection, *Erro
 		return &CategoryCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchCategoriesLink(next, nil, nil)
+	return fetchCategoriesLink(next, nil, nil, "")
 }
 
 // fetchCategory fetches a single category from the network. If the request failed,
@@ -208,12 +208,12 @@ func fetchCategory(request request) (*Category, *Error) {
 // fetchCategoryLink tries to fetch a given link and interpret the response as
 // a single category. If the link is nil or the category could not be fetched,
 // nil is returned.
-func fetchCategoryLink(link requestable) (*Category, *Error) {
+func fetchCategoryLink(link requestable, embeds string) (*Category, *Error) {
 	if !link.exists() {
 		return nil, nil
 	}
 
-	return fetchCategory(link.request(nil, nil))
+	return fetchCategory(link.request(nil, nil, embeds))
 }
 
 // fetchCategories fetches a list of categories from the network. It always
@@ -232,10 +232,10 @@ func fetchCategories(request request) (*CategoryCollection, *Error) {
 // fetchCategoriesLink tries to fetch a given link and interpret the response as
 // a list of categories. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchCategoriesLink(link requestable, filter filter, sort *Sorting) (*CategoryCollection, *Error) {
+func fetchCategoriesLink(link requestable, filter filter, sort *Sorting, embeds string) (*CategoryCollection, *Error) {
 	if !link.exists() {
 		return &CategoryCollection{}, nil
 	}
 
-	return fetchCategories(link.request(filter, sort))
+	return fetchCategories(link.request(filter, sort, embeds))
 }

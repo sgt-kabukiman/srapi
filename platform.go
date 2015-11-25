@@ -48,19 +48,19 @@ type platformResponse struct {
 // PlatformByID tries to fetch a single platform, identified by its ID.
 // When an error is returned, the returned platform is nil.
 func PlatformByID(id string) (*Platform, *Error) {
-	return fetchPlatform(request{"GET", "/platforms/" + id, nil, nil, nil})
+	return fetchPlatform(request{"GET", "/platforms/" + id, nil, nil, nil, ""})
 }
 
 // Runs fetches a list of runs done on the platform, optionally filtered and
 // sorted. This function always returns a RunCollection.
-func (p *Platform) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(p, "runs"), filter, sort)
+func (p *Platform) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(p, "runs"), filter, sort, embeds)
 }
 
 // Games fetches a list of games available on the platform, optionally filtered
 // and sorted. This function always returns a GameCollection.
-func (p *Platform) Games(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
-	return fetchGamesLink(firstLink(p, "games"), filter, sort)
+func (p *Platform) Games(filter *GameFilter, sort *Sorting, embeds string) (*GameCollection, *Error) {
+	return fetchGamesLink(firstLink(p, "games"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -77,7 +77,7 @@ type PlatformCollection struct {
 
 // Platforms retrieves a collection of platforms
 func Platforms(s *Sorting, c *Cursor) (*PlatformCollection, *Error) {
-	return fetchPlatforms(request{"GET", "/platforms", nil, s, c})
+	return fetchPlatforms(request{"GET", "/platforms", nil, s, c, ""})
 }
 
 // platforms returns a list of pointers to the platforms; used for cases where
@@ -116,7 +116,7 @@ func (pc *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Erro
 		return &PlatformCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchPlatforms(next.request(nil, nil))
+	return fetchPlatforms(next.request(nil, nil, ""))
 }
 
 // fetchPlatform fetches a single platform from the network. If the request failed,

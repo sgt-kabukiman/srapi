@@ -105,7 +105,7 @@ func TestPlatforms(t *testing.T) {
 		platform, err := PlatformByID("o232q83p") // Gameboy
 		So(err, ShouldBeNil)
 
-		runs, err := platform.Runs(nil, nil)
+		runs, err := platform.Runs(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -117,7 +117,7 @@ func TestPlatforms(t *testing.T) {
 			firstID = runs.Data[0].ID
 		})
 
-		runs, err = platform.Runs(nil, &Sorting{Direction: Descending})
+		runs, err = platform.Runs(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
@@ -131,7 +131,7 @@ func TestPlatforms(t *testing.T) {
 		platform, err := PlatformByID("o232q83p") // Gameboy
 		So(err, ShouldBeNil)
 
-		games, err := platform.Games(nil, nil)
+		games, err := platform.Games(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -143,7 +143,7 @@ func TestPlatforms(t *testing.T) {
 			firstID = games.Data[0].ID
 		})
 
-		games, err = platform.Games(nil, &Sorting{Direction: Descending})
+		games, err = platform.Games(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {

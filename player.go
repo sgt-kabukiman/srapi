@@ -27,10 +27,10 @@ func (pl *PlayerLink) exists() bool {
 }
 
 // request turns a link into a request
-func (pl *PlayerLink) request(filter filter, sort *Sorting) request {
+func (pl *PlayerLink) request(filter filter, sort *Sorting, embeds string) request {
 	relURL := pl.URI[len(BaseURL):]
 
-	return request{"GET", relURL, filter, sort, nil}
+	return request{"GET", relURL, filter, sort, nil, embeds}
 }
 
 // fetch retrieves the user or guest the link points to

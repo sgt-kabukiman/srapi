@@ -10,7 +10,7 @@ import (
 // requestable describes anything that can turn itself into a request.
 type requestable interface {
 	exists() bool
-	request(filter, *Sorting) request
+	request(filter, *Sorting, string) request
 }
 
 // Link represent a generic link, most often used for API links.
@@ -25,10 +25,10 @@ func (l *Link) exists() bool {
 }
 
 // request turns a link into a GET request.
-func (l *Link) request(filter filter, sort *Sorting) request {
+func (l *Link) request(filter filter, sort *Sorting, embeds string) request {
 	relURL := l.URI[len(BaseURL):]
 
-	return request{"GET", relURL, filter, sort, nil}
+	return request{"GET", relURL, filter, sort, nil, embeds}
 }
 
 // AssetLink is a link pointing to an image, having width and height values.
@@ -93,6 +93,9 @@ const (
 	// Descending sorts z...a
 	Descending
 )
+
+// use this to denote no embeds
+const NoEmbeds = ""
 
 // Sorting represents the sorting options when requesting a list of items from the API.
 type Sorting struct {

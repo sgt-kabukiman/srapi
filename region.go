@@ -45,19 +45,19 @@ type regionResponse struct {
 // RegionByID tries to fetch a single region, identified by its ID.
 // When an error is returned, the returned region is nil.
 func RegionByID(id string) (*Region, *Error) {
-	return fetchRegion(request{"GET", "/regions/" + id, nil, nil, nil})
+	return fetchRegion(request{"GET", "/regions/" + id, nil, nil, nil, ""})
 }
 
 // Runs fetches a list of runs done in the region, optionally filtered and
 // sorted. This function always returns a RunCollection.
-func (r *Region) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(r, "runs"), filter, sort)
+func (r *Region) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(r, "runs"), filter, sort, embeds)
 }
 
 // Games fetches a list of games available in the region, optionally filtered
 // and sorted. This function always returns a GameCollection.
-func (r *Region) Games(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
-	return fetchGamesLink(firstLink(r, "games"), filter, sort)
+func (r *Region) Games(filter *GameFilter, sort *Sorting, embeds string) (*GameCollection, *Error) {
+	return fetchGamesLink(firstLink(r, "games"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -74,7 +74,7 @@ type RegionCollection struct {
 
 // Regions retrieves a collection of regions
 func Regions(s *Sorting, c *Cursor) (*RegionCollection, *Error) {
-	return fetchRegions(request{"GET", "/regions", nil, s, c})
+	return fetchRegions(request{"GET", "/regions", nil, s, c, ""})
 }
 
 // regions returns a list of pointers to the regions; used for cases where
@@ -113,7 +113,7 @@ func (rc *RegionCollection) fetchLink(name string) (*RegionCollection, *Error) {
 		return &RegionCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchRegions(next.request(nil, nil))
+	return fetchRegions(next.request(nil, nil, ""))
 }
 
 // fetchRegion fetches a single region from the network. If the request failed,

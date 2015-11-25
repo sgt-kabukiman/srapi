@@ -40,25 +40,25 @@ func recast(data interface{}, dest interface{}) error {
 func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 	result := make(map[string]GameModLevel)
 
-	// we have a simple map between user IDs and mod levels
+	// both embedded and non-embedded moderators look at least like this
+	// and we cannot type assert to map[string]string directly.
 	assertedMap, okay := data.(map[string]interface{})
 	if okay {
-		for userID, something := range assertedMap {
-			level, okay := something.(string)
-			if okay {
-				result[userID] = GameModLevel(level)
+		if isResponseLike(assertedMap) {
+			tmp := UserCollection{}
+
+			if recast(data, &tmp) == nil {
+				for _, user := range tmp.users() {
+					result[user.ID] = UnknownModLevel
+				}
 			}
-		}
-
-		return result
-	}
-
-	// maybe we got a list of embedded users
-	tmp := UserCollection{}
-
-	if recast(data, &tmp) == nil {
-		for _, user := range tmp.users() {
-			result[user.ID] = UnknownModLevel
+		} else {
+			for userID, something := range assertedMap {
+				level, okay := something.(string)
+				if okay {
+					result[userID] = GameModLevel(level)
+				}
+			}
 		}
 	}
 
@@ -69,10 +69,15 @@ func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 // If moderators were not embedded, they will be fetched individually from the
 // network.
 func recastToModerators(data interface{}) ([]*User, *Error) {
-	// we have a simple map between user IDs and mod levels
+	var result []*User
+
+	// both embedded and non-embedded moderators look at least like this
+	// and we cannot type assert to map[string]string directly.
 	assertedMap, okay := data.(map[string]interface{})
 	if okay {
-		var result []*User
+		if isResponseLike(assertedMap) {
+			return toUserCollection(data).users(), nil
+		}
 
 		for userID := range assertedMap {
 			user, err := UserByID(userID)
@@ -82,11 +87,9 @@ func recastToModerators(data interface{}) ([]*User, *Error) {
 
 			result = append(result, user)
 		}
-
-		return result, nil
 	}
 
-	return toUserCollection(data).users(), nil
+	return result, nil
 }
 
 // recastToPlayerList casts a player blob into a list of players.
@@ -122,4 +125,16 @@ func recastToPlayerList(data interface{}) []*Player {
 	}
 
 	return result
+}
+
+func isResponseLike(data map[string]interface{}) bool {
+	isResponse := len(data) == 1
+
+	for key := range data {
+		if key != "data" {
+			isResponse = false
+		}
+	}
+
+	return isResponse
 }

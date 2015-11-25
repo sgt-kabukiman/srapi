@@ -43,20 +43,20 @@ type variableResponse struct {
 // VariableByID tries to fetch a single variable, identified by its ID.
 // When an error is returned, the returned game is nil.
 func VariableByID(id string) (*Variable, *Error) {
-	return fetchVariable(request{"GET", "/variables/" + id, nil, nil, nil})
+	return fetchVariable(request{"GET", "/variables/" + id, nil, nil, nil, ""})
 }
 
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (v *Variable) Game() (*Game, *Error) {
-	return fetchGameLink(firstLink(v, "game"))
+func (v *Variable) Game(embeds string) (*Game, *Error) {
+	return fetchGameLink(firstLink(v, "game"), embeds)
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the category by doing one additional request. This can return nil.
-func (v *Variable) Category() (*Category, *Error) {
-	return fetchCategoryLink(firstLink(v, "category"))
+func (v *Variable) Category(embeds string) (*Category, *Error) {
+	return fetchCategoryLink(firstLink(v, "category"), embeds)
 }
 
 // for the 'hasLinks' interface
@@ -144,5 +144,5 @@ func fetchVariablesLink(link requestable, filter filter, sort *Sorting) (*Variab
 		return &VariableCollection{}, nil
 	}
 
-	return fetchVariables(link.request(filter, sort))
+	return fetchVariables(link.request(filter, sort, ""))
 }

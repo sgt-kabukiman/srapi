@@ -105,7 +105,7 @@ func TestRegions(t *testing.T) {
 		region, err := RegionByID("e6lxy1dz") // Europe/PAL
 		So(err, ShouldBeNil)
 
-		runs, err := region.Runs(nil, nil)
+		runs, err := region.Runs(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -117,7 +117,7 @@ func TestRegions(t *testing.T) {
 			firstID = runs.Data[0].ID
 		})
 
-		runs, err = region.Runs(nil, &Sorting{Direction: Descending})
+		runs, err = region.Runs(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
@@ -131,7 +131,7 @@ func TestRegions(t *testing.T) {
 		region, err := RegionByID("e6lxy1dz") // Europe/PAL
 		So(err, ShouldBeNil)
 
-		games, err := region.Games(nil, nil)
+		games, err := region.Games(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -143,7 +143,7 @@ func TestRegions(t *testing.T) {
 			firstID = games.Data[0].ID
 		})
 
-		games, err = region.Games(nil, &Sorting{Direction: Descending})
+		games, err = region.Games(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {

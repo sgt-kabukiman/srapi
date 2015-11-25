@@ -37,9 +37,9 @@ type PersonalBest struct {
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (pb *PersonalBest) Game() (*Game, *Error) {
+func (pb *PersonalBest) Game(embeds string) (*Game, *Error) {
 	if pb.GameData == nil {
-		return pb.Run.Game()
+		return pb.Run.Game(embeds)
 	}
 
 	return toGame(pb.GameData), nil
@@ -48,9 +48,9 @@ func (pb *PersonalBest) Game() (*Game, *Error) {
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the category by doing one additional request. If nothing on the server side is
 // fubar, then this function should never return nil.
-func (pb *PersonalBest) Category() (*Category, *Error) {
+func (pb *PersonalBest) Category(embeds string) (*Category, *Error) {
 	if pb.CategoryData == nil {
-		return pb.Run.Category()
+		return pb.Run.Category(embeds)
 	}
 
 	return toCategory(pb.CategoryData), nil
@@ -58,9 +58,9 @@ func (pb *PersonalBest) Category() (*Category, *Error) {
 
 // Level extracts the embedded level, if possible, otherwise it will fetch the
 // level by doing one additional request. For full-game runs, this returns nil.
-func (pb *PersonalBest) Level() (*Level, *Error) {
+func (pb *PersonalBest) Level(embeds string) (*Level, *Error) {
 	if pb.LevelData == nil {
-		return pb.Run.Level()
+		return pb.Run.Level(embeds)
 	}
 
 	return toLevel(pb.LevelData), nil
@@ -173,10 +173,10 @@ func fetchPersonalBests(request request) ([]*PersonalBest, *Error) {
 // fetchPersonalBestsLink tries to fetch a given link and interpret the response as
 // a list of PBs. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchPersonalBestsLink(link requestable, filter *PersonalBestFilter) ([]*PersonalBest, *Error) {
+func fetchPersonalBestsLink(link requestable, filter *PersonalBestFilter, embeds string) ([]*PersonalBest, *Error) {
 	if !link.exists() {
 		return make([]*PersonalBest, 0), nil
 	}
 
-	return fetchPersonalBests(link.request(filter, nil))
+	return fetchPersonalBests(link.request(filter, nil, embeds))
 }

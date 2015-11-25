@@ -60,6 +60,9 @@ type request struct {
 
 	// optional cursor (will be applied to the query string)
 	cursor *Cursor
+
+	// embeds as a comma-separated string
+	embeds string
 }
 
 // apiClient is our helper to not pollute the package-wide variables
@@ -91,6 +94,12 @@ func (ac *apiClient) do(request request, dst interface{}) *Error {
 
 	if request.sorting != nil {
 		request.sorting.applyToURL(u)
+	}
+
+	if request.embeds != "" {
+		values := u.Query()
+		values.Set("embed", request.embeds)
+		u.RawQuery = values.Encode()
 	}
 
 	req := http.Request{

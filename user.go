@@ -84,25 +84,25 @@ type userResponse struct {
 // UserByID tries to fetch a single user, identified by their ID.
 // When an error is returned, the returned user is nil.
 func UserByID(id string) (*User, *Error) {
-	return fetchUser(request{"GET", "/users/" + id, nil, nil, nil})
+	return fetchUser(request{"GET", "/users/" + id, nil, nil, nil, ""})
 }
 
 // Runs fetches a list of runs done by the user, optionally filtered
 // and sorted. This function always returns a RunCollection.
-func (u *User) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(u, "runs"), filter, sort)
+func (u *User) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(u, "runs"), filter, sort, embeds)
 }
 
 // ModeratedGames fetches a list of games moderated by the user, optionally
 // filtered and sorted. This function always returns a GameCollection.
-func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting) (*GameCollection, *Error) {
-	return fetchGamesLink(firstLink(u, "games"), filter, sort)
+func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting, embeds string) (*GameCollection, *Error) {
+	return fetchGamesLink(firstLink(u, "games"), filter, sort, embeds)
 }
 
 // PersonalBests fetches a list of PBs by the user, optionally filtered and
 // sorted.
-func (u *User) PersonalBests(filter *PersonalBestFilter) ([]*PersonalBest, *Error) {
-	return fetchPersonalBestsLink(firstLink(u, "personal-bests"), filter)
+func (u *User) PersonalBests(filter *PersonalBestFilter, embeds string) ([]*PersonalBest, *Error) {
+	return fetchPersonalBestsLink(firstLink(u, "personal-bests"), filter, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -167,7 +167,7 @@ type UserCollection struct {
 // Users retrieves a collection of users from  speedrun.com. In most cases, you
 // will filter the game, as paging through *all* users takes A LOT of requests.
 func Users(f *UserFilter, s *Sorting, c *Cursor) (*UserCollection, *Error) {
-	return fetchUsers(request{"GET", "/users", f, s, c})
+	return fetchUsers(request{"GET", "/users", f, s, c, ""})
 }
 
 // users returns a list of pointers to the users; used for cases where there is
@@ -205,7 +205,7 @@ func (uc *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
 		return &UserCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchUsers(next.request(nil, nil))
+	return fetchUsers(next.request(nil, nil, ""))
 }
 
 // fetchUser fetches a single user from the network. If the request failed,
@@ -229,7 +229,7 @@ func fetchUserLink(link requestable) (*User, *Error) {
 		return nil, nil
 	}
 
-	return fetchUser(link.request(nil, nil))
+	return fetchUser(link.request(nil, nil, ""))
 }
 
 // fetchUsers fetches a list of users from the network. It always

@@ -110,18 +110,18 @@ type runResponse struct {
 
 // RunByID tries to fetch a single run, identified by its ID.
 // When an error is returned, the returned run is nil.
-func RunByID(id string) (*Run, *Error) {
-	return fetchRun(request{"GET", "/runs/" + id, nil, nil, nil})
+func RunByID(id string, embeds string) (*Run, *Error) {
+	return fetchRun(request{"GET", "/runs/" + id, nil, nil, nil, embeds})
 }
 
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (r *Run) Game() (*Game, *Error) {
+func (r *Run) Game(embeds string) (*Game, *Error) {
 	// we only have the game ID at hand
 	asserted, okay := r.GameData.(string)
 	if okay {
-		return GameByID(asserted)
+		return GameByID(asserted, embeds)
 	}
 
 	return toGame(r.GameData), nil
@@ -130,7 +130,7 @@ func (r *Run) Game() (*Game, *Error) {
 // Category extracts the embedded category, if possible, otherwise it will fetch
 // the game by doing one additional request. If nothing on the server side is
 // fubar, then this function should never return nil.
-func (r *Run) Category() (*Category, *Error) {
+func (r *Run) Category(embeds string) (*Category, *Error) {
 	if r.CategoryData == nil { // should never happen
 		return nil, nil
 	}
@@ -138,7 +138,7 @@ func (r *Run) Category() (*Category, *Error) {
 	// we only have the category ID at hand
 	asserted, okay := r.CategoryData.(string)
 	if okay {
-		return CategoryByID(asserted)
+		return CategoryByID(asserted, embeds)
 	}
 
 	return toCategory(r.CategoryData), nil
@@ -147,7 +147,7 @@ func (r *Run) Category() (*Category, *Error) {
 // Level extracts the embedded level, if possible, otherwise it will fetch
 // the game by doing one additional request. It's possible for runs to not have
 // levels, so this function can return nil for full-game runs.
-func (r *Run) Level() (*Level, *Error) {
+func (r *Run) Level(embeds string) (*Level, *Error) {
 	if r.LevelData == nil {
 		return nil, nil
 	}
@@ -155,7 +155,7 @@ func (r *Run) Level() (*Level, *Error) {
 	// we only have the level ID at hand
 	asserted, okay := r.LevelData.(string)
 	if okay {
-		return LevelByID(asserted)
+		return LevelByID(asserted, embeds)
 	}
 
 	return toLevel(r.LevelData), nil
@@ -323,8 +323,8 @@ type RunCollection struct {
 }
 
 // Runs retrieves a collection of runs, most likely filtered and sorted.
-func Runs(f *RunFilter, s *Sorting, c *Cursor) (*RunCollection, *Error) {
-	return fetchRuns(request{"GET", "/runs", f, s, c})
+func Runs(f *RunFilter, s *Sorting, c *Cursor, embeds string) (*RunCollection, *Error) {
+	return fetchRuns(request{"GET", "/runs", f, s, c, embeds})
 }
 
 // runs returns a list of pointers to the runs; used for cases where
@@ -363,7 +363,7 @@ func (rc *RunCollection) fetchLink(name string) (*RunCollection, *Error) {
 		return &RunCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchRunsLink(next, nil, nil)
+	return fetchRunsLink(next, nil, nil, "")
 }
 
 // fetchRun fetches a single run from the network. If the request failed,
@@ -396,10 +396,10 @@ func fetchRuns(request request) (*RunCollection, *Error) {
 // fetchRunsLink tries to fetch a given link and interpret the response as
 // a list of runs. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchRunsLink(link requestable, filter filter, sort *Sorting) (*RunCollection, *Error) {
+func fetchRunsLink(link requestable, filter filter, sort *Sorting, embeds string) (*RunCollection, *Error) {
 	if !link.exists() {
 		return &RunCollection{}, nil
 	}
 
-	return fetchRuns(link.request(filter, sort))
+	return fetchRuns(link.request(filter, sort, embeds))
 }

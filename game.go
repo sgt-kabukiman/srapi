@@ -91,8 +91,8 @@ type gameResponse struct {
 
 // GameByID tries to fetch a single game or romhack, identified by its ID.
 // When an error is returned, the returned game is nil.
-func GameByID(id string) (*Game, *Error) {
-	return fetchGame(request{"GET", "/games/" + id, nil, nil, nil})
+func GameByID(id string, embeds string) (*Game, *Error) {
+	return fetchGame(request{"GET", "/games/" + id, nil, nil, nil, embeds})
 }
 
 // GameByAbbreviation tries to fetch a single game or romhack, identified by its
@@ -100,14 +100,14 @@ func GameByID(id string) (*Game, *Error) {
 // change (in constrast to the ID, which is fixed), it should be used with
 // caution.
 // When an error is returned, the returned game is nil.
-func GameByAbbreviation(abbrev string) (*Game, *Error) {
-	return GameByID(abbrev)
+func GameByAbbreviation(abbrev string, embeds string) (*Game, *Error) {
+	return GameByID(abbrev, embeds)
 }
 
 // Series fetches the series the game belongs to. This returns only nil if there
 // is broken data on speedrun.com.
-func (g *Game) Series() (*Series, *Error) {
-	return fetchOneSeriesLink(firstLink(g, "series"))
+func (g *Game) Series(embeds string) (*Series, *Error) {
+	return fetchOneSeriesLink(firstLink(g, "series"), embeds)
 }
 
 // PlatformIDs returns a list of platform IDs this game is assigned to. This is
@@ -239,12 +239,12 @@ func (g *Game) Regions() ([]*Region, *Error) {
 // Categories returns the list of categories for this game. If they were not
 // embedded, one additional request is performed and only then are filter and
 // sort taken into account.
-func (g *Game) Categories(filter *CategoryFilter, sort *Sorting) ([]*Category, *Error) {
+func (g *Game) Categories(filter *CategoryFilter, sort *Sorting, embeds string) ([]*Category, *Error) {
 	var collection *CategoryCollection
 	var err *Error
 
 	if g.VariablesData == nil {
-		collection, err = fetchCategoriesLink(firstLink(g, "categories"), filter, sort)
+		collection, err = fetchCategoriesLink(firstLink(g, "categories"), filter, sort, embeds)
 		if err != nil {
 			return nil, err
 		}
@@ -257,12 +257,12 @@ func (g *Game) Categories(filter *CategoryFilter, sort *Sorting) ([]*Category, *
 
 // Levels returns the list of levels for this game. If they were not embedded,
 // one additional request is performed and only then is sort taken into account.
-func (g *Game) Levels(sort *Sorting) ([]*Level, *Error) {
+func (g *Game) Levels(sort *Sorting, embeds string) ([]*Level, *Error) {
 	var collection *LevelCollection
 	var err *Error
 
 	if g.VariablesData == nil {
-		collection, err = fetchLevelsLink(firstLink(g, "levels"), nil, sort)
+		collection, err = fetchLevelsLink(firstLink(g, "levels"), nil, sort, embeds)
 		if err != nil {
 			return nil, err
 		}
@@ -295,8 +295,8 @@ func (g *Game) Variables(sort *Sorting) ([]*Variable, *Error) {
 // Romhacks returns a game collection containing the romhacks for the game.
 // It always returns a collection, even when there are no romhacks or the game
 // is itself a romhack.
-func (g *Game) Romhacks() (*GameCollection, *Error) {
-	return fetchGamesLink(firstLink(g, "romhacks"), nil, nil)
+func (g *Game) Romhacks(embeds string) (*GameCollection, *Error) {
+	return fetchGamesLink(firstLink(g, "romhacks"), nil, nil, embeds)
 }
 
 // ModeratorMap returns a map of user IDs to their respective moderation levels.
@@ -317,21 +317,21 @@ func (g *Game) Moderators() ([]*User, *Error) {
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the game.
 // The result can be nil.
-func (g *Game) PrimaryLeaderboard(options *LeaderboardOptions) (*Leaderboard, *Error) {
-	return fetchLeaderboardLink(firstLink(g, "leaderboard"), options)
+func (g *Game) PrimaryLeaderboard(options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
+	return fetchLeaderboardLink(firstLink(g, "leaderboard"), options, embeds)
 }
 
 // Records fetches a list of leaderboards for the game. This includes (by default)
 // full-game and per-level leaderboards and is therefore paginated as a collection.
 // This function always returns a LeaderboardCollection.
-func (g *Game) Records(filter *LeaderboardFilter) (*LeaderboardCollection, *Error) {
-	return fetchLeaderboardsLink(firstLink(g, "records"), filter, nil)
+func (g *Game) Records(filter *LeaderboardFilter, embeds string) (*LeaderboardCollection, *Error) {
+	return fetchLeaderboardsLink(firstLink(g, "records"), filter, nil, embeds)
 }
 
 // Runs fetches a list of runs done in the given game, optionally filtered
 // and sorted. This function always returns a RunCollection.
-func (g *Game) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(g, "runs"), filter, sort)
+func (g *Game) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(g, "runs"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -400,8 +400,8 @@ type GameCollection struct {
 // speedrun.com. In most cases, you will filter the game, as paging through
 // *all* games takes A LOT of requests. For this, you should use BulkMode, which
 // is not yet supported by this API.
-func Games(f *GameFilter, s *Sorting, c *Cursor) (*GameCollection, *Error) {
-	return fetchGames(request{"GET", "/games", f, s, c})
+func Games(f *GameFilter, s *Sorting, c *Cursor, embeds string) (*GameCollection, *Error) {
+	return fetchGames(request{"GET", "/games", f, s, c, embeds})
 }
 
 // games returns a list of pointers to the games; used for cases where there is
@@ -439,7 +439,7 @@ func (gc *GameCollection) fetchLink(name string) (*GameCollection, *Error) {
 		return &GameCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchGamesLink(next, nil, nil)
+	return fetchGamesLink(next, nil, nil, "")
 }
 
 // fetchGame fetches a single game from the network. If the request failed,
@@ -458,12 +458,12 @@ func fetchGame(request request) (*Game, *Error) {
 // fetchGameLink tries to fetch a given link and interpret the response as
 // a single game. If the link is nil or the game could not be fetched,
 // nil is returned.
-func fetchGameLink(link requestable) (*Game, *Error) {
+func fetchGameLink(link requestable, embeds string) (*Game, *Error) {
 	if !link.exists() {
 		return nil, nil
 	}
 
-	return fetchGame(link.request(nil, nil))
+	return fetchGame(link.request(nil, nil, embeds))
 }
 
 // fetchGames fetches a list of games from the network. It always
@@ -482,10 +482,10 @@ func fetchGames(request request) (*GameCollection, *Error) {
 // fetchGamesLink tries to fetch a given link and interpret the response as
 // a list of games. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchGamesLink(link requestable, filter filter, sort *Sorting) (*GameCollection, *Error) {
+func fetchGamesLink(link requestable, filter filter, sort *Sorting, embeds string) (*GameCollection, *Error) {
 	if !link.exists() {
 		return &GameCollection{}, nil
 	}
 
-	return fetchGames(link.request(filter, sort))
+	return fetchGames(link.request(filter, sort, embeds))
 }

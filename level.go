@@ -56,26 +56,26 @@ type levelResponse struct {
 
 // LevelByID tries to fetch a single level, identified by its ID.
 // When an error is returned, the returned level is nil.
-func LevelByID(id string) (*Level, *Error) {
-	return fetchLevel(request{"GET", "/levels/" + id, nil, nil, nil})
+func LevelByID(id string, embeds string) (*Level, *Error) {
+	return fetchLevel(request{"GET", "/levels/" + id, nil, nil, nil, embeds})
 }
 
 // Game extracts the embedded game, if possible, otherwise it will fetch the
 // game by doing one additional request. If nothing on the server side is fubar,
 // then this function should never return nil.
-func (l *Level) Game() (*Game, *Error) {
-	return fetchGameLink(firstLink(l, "game"))
+func (l *Level) Game(embeds string) (*Game, *Error) {
+	return fetchGameLink(firstLink(l, "game"), embeds)
 }
 
 // Categories extracts the embedded categories, if possible, otherwise it will
 // fetch them by doing one additional request. filter and sort are only relevant
 // when the categories are not already embedded.
-func (l *Level) Categories(filter *CategoryFilter, sort *Sorting) ([]*Category, *Error) {
+func (l *Level) Categories(filter *CategoryFilter, sort *Sorting, embeds string) ([]*Category, *Error) {
 	var collection *CategoryCollection
 	var err *Error
 
 	if l.CategoriesData == nil {
-		collection, err = fetchCategoriesLink(firstLink(l, "categories"), filter, sort)
+		collection, err = fetchCategoriesLink(firstLink(l, "categories"), filter, sort, embeds)
 		if err != nil {
 			return nil, err
 		}
@@ -107,20 +107,20 @@ func (l *Level) Variables(sort *Sorting) ([]*Variable, *Error) {
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the level.
 // The result can be nil.
-func (l *Level) PrimaryLeaderboard(options *LeaderboardOptions) (*Leaderboard, *Error) {
-	return fetchLeaderboardLink(firstLink(l, "leaderboard"), options)
+func (l *Level) PrimaryLeaderboard(options *LeaderboardOptions, embeds string) (*Leaderboard, *Error) {
+	return fetchLeaderboardLink(firstLink(l, "leaderboard"), options, embeds)
 }
 
 // Records fetches a list of leaderboards for the level, assuming the default
 // category. This function always returns a LeaderboardCollection.
-func (l *Level) Records(filter *LeaderboardFilter) (*LeaderboardCollection, *Error) {
-	return fetchLeaderboardsLink(firstLink(l, "records"), filter, nil)
+func (l *Level) Records(filter *LeaderboardFilter, embeds string) (*LeaderboardCollection, *Error) {
+	return fetchLeaderboardsLink(firstLink(l, "records"), filter, nil, embeds)
 }
 
 // Runs fetches a list of runs done in the given level and its default category,
 // optionally filtered and sorted. This function always returns a RunCollection.
-func (l *Level) Runs(filter *RunFilter, sort *Sorting) (*RunCollection, *Error) {
-	return fetchRunsLink(firstLink(l, "runs"), filter, sort)
+func (l *Level) Runs(filter *RunFilter, sort *Sorting, embeds string) (*RunCollection, *Error) {
+	return fetchRunsLink(firstLink(l, "runs"), filter, sort, embeds)
 }
 
 // for the 'hasLinks' interface
@@ -171,7 +171,7 @@ func (lc *LevelCollection) fetchLink(name string) (*LevelCollection, *Error) {
 		return &LevelCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
 	}
 
-	return fetchLevelsLink(next, nil, nil)
+	return fetchLevelsLink(next, nil, nil, "")
 }
 
 // fetchLevel fetches a single level from the network. If the request failed,
@@ -203,10 +203,10 @@ func fetchLevels(request request) (*LevelCollection, *Error) {
 // fetchLevelsLink tries to fetch a given link and interpret the response as
 // a list of levels. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchLevelsLink(link requestable, filter filter, sort *Sorting) (*LevelCollection, *Error) {
+func fetchLevelsLink(link requestable, filter filter, sort *Sorting, embeds string) (*LevelCollection, *Error) {
 	if !link.exists() {
 		return &LevelCollection{}, nil
 	}
 
-	return fetchLevels(link.request(filter, sort))
+	return fetchLevels(link.request(filter, sort, embeds))
 }

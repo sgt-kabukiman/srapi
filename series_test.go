@@ -12,7 +12,7 @@ func TestSeries(t *testing.T) {
 	Convey("Fetching series by valid IDs", t, func() {
 		id := "9v7og6n0" // GTA
 
-		series, err := SeriesByID(id)
+		series, err := SeriesByID(id, NoEmbeds)
 
 		So(err, ShouldBeNil)
 		So(series.ID, ShouldEqual, id)
@@ -28,7 +28,7 @@ func TestSeries(t *testing.T) {
 	})
 
 	Convey("Fetching series by valid abbreviation", t, func() {
-		series, err := SeriesByAbbreviation("gta")
+		series, err := SeriesByAbbreviation("gta", NoEmbeds)
 
 		So(err, ShouldBeNil)
 		So(series.ID, ShouldEqual, "9v7og6n0")
@@ -36,7 +36,13 @@ func TestSeries(t *testing.T) {
 		So(series.Abbreviation, ShouldEqual, "gta")
 		So(series.Weblink, ShouldNotBeEmpty)
 		So(series.Links, ShouldNotBeEmpty)
-		So(series.ModeratorMap(), ShouldNotBeEmpty)
+
+		m := series.ModeratorMap()
+		So(m, ShouldNotBeEmpty)
+
+		for _, level := range m {
+			So(level, ShouldNotEqual, UnknownModLevel)
+		}
 
 		mods, err := series.Moderators()
 		So(err, ShouldBeNil)
@@ -44,20 +50,38 @@ func TestSeries(t *testing.T) {
 	})
 
 	Convey("Fetching series by invalid IDs", t, func() {
-		series, err := SeriesByID("i_do_not_exist")
+		series, err := SeriesByID("i_do_not_exist", NoEmbeds)
 		So(err, ShouldNotBeNil)
 		So(series, ShouldBeNil)
 	})
 
 	Convey("Fetching series by invalid abbrevitation", t, func() {
-		series, err := SeriesByAbbreviation("i_do_not_exist")
+		series, err := SeriesByAbbreviation("i_do_not_exist", NoEmbeds)
 		So(err, ShouldNotBeNil)
 		So(series, ShouldBeNil)
 	})
 
+	Convey("embed moderators in series", t, func() {
+		id := "9v7og6n0" // GTA
+
+		series, err := SeriesByID(id, "moderators")
+		So(err, ShouldBeNil)
+
+		m := series.ModeratorMap()
+		So(m, ShouldNotBeEmpty)
+
+		for _, level := range m {
+			So(level, ShouldEqual, UnknownModLevel)
+		}
+
+		mods, err := series.Moderators()
+		So(err, ShouldBeNil)
+		So(mods, ShouldNotBeEmpty)
+	})
+
 	Convey("Fetching multiple series", t, func() {
 		Convey("starting from the beginning", func() {
-			seriesList, err := ManySeries(nil, nil, nil)
+			seriesList, err := ManySeries(nil, nil, nil, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldNotBeEmpty)
 			So(seriesList.Pagination.Offset, ShouldEqual, 0)
@@ -69,7 +93,7 @@ func TestSeries(t *testing.T) {
 		})
 
 		Convey("skipping the first few", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{2, 0})
+			seriesList, err := ManySeries(nil, nil, &Cursor{2, 0}, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldNotBeEmpty)
 			So(seriesList.Pagination.Offset, ShouldEqual, 2)
@@ -82,7 +106,7 @@ func TestSeries(t *testing.T) {
 		})
 
 		Convey("limited to just a few", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{0, 3})
+			seriesList, err := ManySeries(nil, nil, &Cursor{0, 3}, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldHaveLength, 3)
 			So(seriesList.Pagination.Offset, ShouldEqual, 0)
@@ -96,7 +120,7 @@ func TestSeries(t *testing.T) {
 		})
 
 		Convey("paging through the seriesList", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{0, 1})
+			seriesList, err := ManySeries(nil, nil, &Cursor{0, 1}, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldHaveLength, 1)
 			So(seriesList.Pagination.Offset, ShouldEqual, 0)
@@ -122,7 +146,7 @@ func TestSeries(t *testing.T) {
 		})
 
 		Convey("the prev page from the beginning should yield an error", func() {
-			seriesList, err := ManySeries(nil, nil, nil)
+			seriesList, err := ManySeries(nil, nil, nil, NoEmbeds)
 
 			seriesList, err = seriesList.PrevPage()
 			So(err, ShouldNotBeNil)
@@ -133,7 +157,7 @@ func TestSeries(t *testing.T) {
 			// check abbrevitation
 			filter := SeriesFilter{Abbreviation: "gta"}
 
-			seriesList, err := ManySeries(&filter, nil, nil)
+			seriesList, err := ManySeries(&filter, nil, nil, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldHaveLength, 1)
 
@@ -141,24 +165,24 @@ func TestSeries(t *testing.T) {
 			filter = SeriesFilter{Name: "mario"}
 			cursor := Cursor{Max: 5}
 
-			seriesList, err = ManySeries(&filter, nil, &cursor)
+			seriesList, err = ManySeries(&filter, nil, &cursor, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(seriesList.Data, ShouldHaveLength, 5)
 
 			// check moderator
 			filter = SeriesFilter{Moderator: "r5j52gjv"}
 
-			seriesList, err = ManySeries(&filter, nil, nil)
+			seriesList, err = ManySeries(&filter, nil, nil, NoEmbeds)
 			So(err, ShouldBeNil)
 			So(len(seriesList.Data), ShouldBeBetween, 2, 5) // Sorry Josh, but I don't assume it's gonna be more than 5 #Kappa
 		})
 	})
 
 	Convey("Fetching games of a series", t, func() {
-		series, err := SeriesByID("9v7og6n0") // Gameboy
+		series, err := SeriesByID("9v7og6n0", NoEmbeds) // Gameboy
 		So(err, ShouldBeNil)
 
-		games, err := series.Games(nil, nil)
+		games, err := series.Games(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		firstID := ""
@@ -170,7 +194,7 @@ func TestSeries(t *testing.T) {
 			firstID = games.Data[0].ID
 		})
 
-		games, err = series.Games(nil, &Sorting{Direction: Descending})
+		games, err = series.Games(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
