@@ -29,10 +29,13 @@ func main() {
 	// optional sorting
 	sort := &srapi.Sorting{"name", srapi.Descending}
 
-	// pagination
+	// optional pagination
 	cursor := &srapi.Cursor{2, 2} // offset, max
 
-	regions, err := srapi.Regions(sort, cursor)
+	// optional embeds
+	embeds := srapi.NoEmbeds
+
+	regions, err := srapi.Regions(sort, cursor, embeds)
 	if err != nil {
 		panic(err) // err is an srapi.*ApiError struct, containing more information
 	}

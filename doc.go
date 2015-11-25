@@ -11,9 +11,9 @@
 //
 //     import "github.com/sgt-kabukiman/srapi"
 //
-//     game, err := srapi.GameByAbbreviation("smw")
+//     game, err := srapi.GameByAbbreviation("smw", srapi.NoEmbeds)
 //     if err == nil {
-//         categories := game.Categories()
+//         categories := game.Categories(nil, nil, srapi.NoEmbeds)
 //     }
 //
 // Usually, there are two functions per resource; one to get a single object
