@@ -49,7 +49,7 @@ func TestSeries(t *testing.T) {
 		So(series, ShouldBeNil)
 	})
 
-	Convey("Fetching series by invalid IDs", t, func() {
+	Convey("Fetching series by invalid abbrevitation", t, func() {
 		series, err := SeriesByAbbreviation("i_do_not_exist")
 		So(err, ShouldNotBeNil)
 		So(series, ShouldBeNil)
