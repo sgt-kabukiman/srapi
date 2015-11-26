@@ -55,11 +55,23 @@ type NameColor struct {
 
 // toUser transforms a data blob to a User struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toUser(data interface{}) *User {
-	dest := User{}
+func toUser(data interface{}, isResponse bool) *User {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := userResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := User{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil

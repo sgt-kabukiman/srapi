@@ -16,11 +16,23 @@ type Guest struct {
 
 // toGuest transforms a data blob to a Guest struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toGuest(data interface{}) *Guest {
-	dest := Guest{}
+func toGuest(data interface{}, isResponse bool) *Guest {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := guestResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Guest{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil

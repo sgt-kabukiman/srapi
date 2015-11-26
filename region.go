@@ -16,11 +16,23 @@ type Region struct {
 
 // toRegion transforms a data blob to a Region struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toRegion(data interface{}) *Region {
-	dest := Region{}
+func toRegion(data interface{}, isResponse bool) *Region {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := regionResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Region{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil

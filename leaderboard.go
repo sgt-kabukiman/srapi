@@ -142,7 +142,7 @@ func (lb *Leaderboard) Game(embeds string) (*Game, *Error) {
 		return GameByID(asserted, embeds)
 	}
 
-	return toGame(lb.GameData), nil
+	return toGame(lb.GameData, true), nil
 }
 
 // Category returns the category that the leaderboard is for. If it was not
@@ -155,7 +155,7 @@ func (lb *Leaderboard) Category(embeds string) (*Category, *Error) {
 		return CategoryByID(asserted, embeds)
 	}
 
-	return toCategory(lb.CategoryData), nil
+	return toCategory(lb.CategoryData, true), nil
 }
 
 // Level returns the level that the leaderboard is for. If it's a full-game
@@ -172,7 +172,7 @@ func (lb *Leaderboard) Level(embeds string) (*Level, *Error) {
 		return LevelByID(asserted, embeds)
 	}
 
-	return toLevel(lb.LevelData), nil
+	return toLevel(lb.LevelData, true), nil
 }
 
 // Platforms returns a list of all platforms that are used in the leaderboard.

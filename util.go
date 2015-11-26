@@ -107,12 +107,12 @@ func recastToPlayerList(data interface{}) []*Player {
 
 				switch rel {
 				case "user":
-					if user := toUser(playerProps); user != nil {
+					if user := toUser(playerProps, false); user != nil {
 						player.User = user
 					}
 
 				case "guest":
-					if guest := toGuest(playerProps); guest != nil {
+					if guest := toGuest(playerProps, false); guest != nil {
 						player.Guest = guest
 					}
 				}

@@ -42,11 +42,23 @@ type Category struct {
 
 // toCategory transforms a data blob to a Category struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toCategory(data interface{}) *Category {
-	dest := Category{}
+func toCategory(data interface{}, isResponse bool) *Category {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := categoryResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Category{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil
@@ -82,7 +94,7 @@ func (c *Category) Game(embeds string) (*Game, *Error) {
 		return fetchGameLink(firstLink(c, "game"), embeds)
 	}
 
-	return toGame(c.GameData), nil
+	return toGame(c.GameData, true), nil
 }
 
 // Variables extracts the embedded variables, if possible, otherwise it will

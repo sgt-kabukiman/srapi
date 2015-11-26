@@ -42,7 +42,7 @@ func (pb *PersonalBest) Game(embeds string) (*Game, *Error) {
 		return pb.Run.Game(embeds)
 	}
 
-	return toGame(pb.GameData), nil
+	return toGame(pb.GameData, true), nil
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
@@ -53,7 +53,7 @@ func (pb *PersonalBest) Category(embeds string) (*Category, *Error) {
 		return pb.Run.Category(embeds)
 	}
 
-	return toCategory(pb.CategoryData), nil
+	return toCategory(pb.CategoryData, true), nil
 }
 
 // Level extracts the embedded level, if possible, otherwise it will fetch the
@@ -63,7 +63,7 @@ func (pb *PersonalBest) Level(embeds string) (*Level, *Error) {
 		return pb.Run.Level(embeds)
 	}
 
-	return toLevel(pb.LevelData), nil
+	return toLevel(pb.LevelData, true), nil
 }
 
 // Platform extracts the embedded platform, if possible, otherwise it will fetch
@@ -74,7 +74,7 @@ func (pb *PersonalBest) Platform() (*Platform, *Error) {
 		return pb.Run.Platform()
 	}
 
-	return toPlatform(pb.PlatformData), nil
+	return toPlatform(pb.PlatformData, true), nil
 }
 
 // Region extracts the embedded region, if possible, otherwise it will fetch
@@ -85,7 +85,7 @@ func (pb *PersonalBest) Region() (*Region, *Error) {
 		return pb.Run.Region()
 	}
 
-	return toRegion(pb.RegionData), nil
+	return toRegion(pb.RegionData, true), nil
 }
 
 // Players returns a list of all players that aparticipated in this PB.

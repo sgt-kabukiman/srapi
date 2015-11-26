@@ -19,11 +19,23 @@ type Platform struct {
 
 // toPlatform transforms a data blob to a Platform struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toPlatform(data interface{}) *Platform {
-	dest := Platform{}
+func toPlatform(data interface{}, isResponse bool) *Platform {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := platformResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Platform{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil

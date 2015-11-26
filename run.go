@@ -124,7 +124,7 @@ func (r *Run) Game(embeds string) (*Game, *Error) {
 		return GameByID(asserted, embeds)
 	}
 
-	return toGame(r.GameData), nil
+	return toGame(r.GameData, true), nil
 }
 
 // Category extracts the embedded category, if possible, otherwise it will fetch
@@ -141,7 +141,7 @@ func (r *Run) Category(embeds string) (*Category, *Error) {
 		return CategoryByID(asserted, embeds)
 	}
 
-	return toCategory(r.CategoryData), nil
+	return toCategory(r.CategoryData, true), nil
 }
 
 // Level extracts the embedded level, if possible, otherwise it will fetch
@@ -158,7 +158,7 @@ func (r *Run) Level(embeds string) (*Level, *Error) {
 		return LevelByID(asserted, embeds)
 	}
 
-	return toLevel(r.LevelData), nil
+	return toLevel(r.LevelData, true), nil
 }
 
 // Platform extracts the embedded platform, if possible, otherwise it will fetch
@@ -173,7 +173,7 @@ func (r *Run) Platform() (*Platform, *Error) {
 		return nil, nil
 	}
 
-	return toPlatform(r.PlatformData), nil
+	return toPlatform(r.PlatformData, true), nil
 }
 
 // Region extracts the embedded region, if possible, otherwise it will fetch
@@ -188,7 +188,7 @@ func (r *Run) Region() (*Region, *Error) {
 		return nil, nil
 	}
 
-	return toRegion(r.RegionData), nil
+	return toRegion(r.RegionData, true), nil
 }
 
 // Players returns a list of all players that aparticipated in this run.

@@ -73,11 +73,23 @@ type Game struct {
 
 // toGame transforms a data blob to a Game struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toGame(data interface{}) *Game {
-	dest := Game{}
+func toGame(data interface{}, isResponse bool) *Game {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := gameResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Game{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil

@@ -28,11 +28,23 @@ type Level struct {
 
 // toLevel transforms a data blob to a Level struct, if possible.
 // Returns nil if casting the data was not successful or if data was nil.
-func toLevel(data interface{}) *Level {
-	dest := Level{}
+func toLevel(data interface{}, isResponse bool) *Level {
+	if data == nil {
+		return nil
+	}
 
-	if data != nil && recast(data, &dest) == nil {
-		return &dest
+	if isResponse {
+		dest := levelResponse{}
+
+		if recast(data, &dest) == nil {
+			return &dest.Data
+		}
+	} else {
+		dest := Level{}
+
+		if recast(data, &dest) == nil {
+			return &dest
+		}
 	}
 
 	return nil
