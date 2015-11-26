@@ -67,8 +67,10 @@ func TestSeries(t *testing.T) {
 		series, err := SeriesByID(id, "moderators")
 		So(err, ShouldBeNil)
 
+		before := requestCount
 		m := series.ModeratorMap()
 		So(m, ShouldNotBeEmpty)
+		So(requestCount, ShouldEqual, before)
 
 		for _, level := range m {
 			So(level, ShouldEqual, UnknownModLevel)
@@ -76,7 +78,8 @@ func TestSeries(t *testing.T) {
 
 		mods, err := series.Moderators()
 		So(err, ShouldBeNil)
-		So(mods, ShouldNotBeEmpty)
+		So(len(mods), ShouldBeBetween, 3, 100)
+		So(mods[0].Names.International, ShouldNotBeEmpty)
 	})
 
 	Convey("Fetching multiple series", t, func() {

@@ -39,6 +39,17 @@ func TestCategories(t *testing.T) {
 		So(game.Abbreviation, ShouldEqual, "gtavc")
 	})
 
+	Convey("Get a category's game via embedding", t, func() {
+		category, err := CategoryByID("nxd1rk8q", "game")
+
+		before := requestCount
+		game, err := category.Game(NoEmbeds)
+		So(err, ShouldBeNil)
+		So(game, ShouldNotBeNil)
+		So(game.Abbreviation, ShouldEqual, "gtavc")
+		So(requestCount, ShouldEqual, before)
+	})
+
 	Convey("Get a category's variables", t, func() {
 		category, err := CategoryByID("w9d846kn", NoEmbeds) // CTR any%
 		variables, err := category.Variables(nil)
@@ -46,6 +57,18 @@ func TestCategories(t *testing.T) {
 		So(variables, ShouldNotBeNil)
 		So(variables, ShouldHaveLength, 1)
 		So(variables[0].Name, ShouldEqual, "Character")
+	})
+
+	Convey("Get a category's variables via embedding", t, func() {
+		category, err := CategoryByID("w9d846kn", "variables") // CTR any%
+
+		before := requestCount
+		variables, err := category.Variables(nil)
+		So(err, ShouldBeNil)
+		So(variables, ShouldNotBeNil)
+		So(variables, ShouldHaveLength, 1)
+		So(variables[0].Name, ShouldEqual, "Character")
+		So(requestCount, ShouldEqual, before)
 	})
 
 	Convey("Fetch the primary leaderboard for a category", t, func() {

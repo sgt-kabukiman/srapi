@@ -35,12 +35,17 @@ const BaseURL = "http://www.speedrun.com/api/v1"
 // our http client, initialized by init
 var httpClient *apiClient
 
+// internal request counter, used for tests to determine if embeds worked
+var requestCount int
+
 // initialize the httpClient
 func init() {
 	httpClient = &apiClient{
 		baseURL: BaseURL,
 		client:  &http.Client{},
 	}
+
+	requestCount = 0
 }
 
 // request represents all options relevant for making an actual HTTP request.
@@ -106,6 +111,8 @@ func (ac *apiClient) do(request request, dst interface{}) *Error {
 		Method: request.method,
 		URL:    u,
 	}
+
+	requestCount++
 
 	// hit the network
 	response, err := ac.client.Do(&req)
