@@ -255,7 +255,7 @@ func (g *Game) Categories(filter *CategoryFilter, sort *Sorting, embeds string) 
 	var collection *CategoryCollection
 	var err *Error
 
-	if g.VariablesData == nil {
+	if g.CategoriesData == nil {
 		collection, err = fetchCategoriesLink(firstLink(g, "categories"), filter, sort, embeds)
 		if err != nil {
 			return nil, err
@@ -273,13 +273,13 @@ func (g *Game) Levels(sort *Sorting, embeds string) ([]*Level, *Error) {
 	var collection *LevelCollection
 	var err *Error
 
-	if g.VariablesData == nil {
+	if g.LevelsData == nil {
 		collection, err = fetchLevelsLink(firstLink(g, "levels"), nil, sort, embeds)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		collection = toLevelCollection(g.CategoriesData)
+		collection = toLevelCollection(g.LevelsData)
 	}
 
 	return collection.levels(), nil

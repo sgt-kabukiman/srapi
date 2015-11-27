@@ -10,7 +10,7 @@ import (
 // PersonalBest represents one PB of a given user in a certain game/category/level
 type PersonalBest struct {
 	// the rank on the default leaderboard (i.e. with no options set) of this run
-	Rank int
+	Rank int `json:"place"`
 
 	// the run itpb
 	Run Run

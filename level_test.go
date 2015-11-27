@@ -9,12 +9,14 @@ import (
 )
 
 func TestLevels(t *testing.T) {
-	Convey("Fetching levels by valid IDs", t, func() {
-		id := "lewp5z9n" // Crash Twinsanity: Jungle Bungle
+	crashTwinsanityJungleBungle := "lewp5z9n"
+	gta1LibertyCityGangstaBang := "zldypd3y"
+	jfgCerulean := "yweon79l"
 
-		level, err := LevelByID(id, NoEmbeds)
+	Convey("Fetching levels by valid IDs", t, func() {
+		level, err := LevelByID(crashTwinsanityJungleBungle, NoEmbeds)
 		So(err, ShouldBeNil)
-		So(level.ID, ShouldEqual, id)
+		So(level.ID, ShouldEqual, crashTwinsanityJungleBungle)
 		So(level.Name, ShouldEqual, "Jungle Bungle")
 		So(level.Weblink, ShouldNotBeEmpty)
 		So(level.Rules, ShouldNotBeEmpty)
@@ -28,7 +30,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Get a level's game", t, func() {
-		level, err := LevelByID("zldypd3y", NoEmbeds)
+		level, err := LevelByID(gta1LibertyCityGangstaBang, NoEmbeds)
 		game, err := level.Game(NoEmbeds)
 		So(err, ShouldBeNil)
 		So(game, ShouldNotBeNil)
@@ -36,7 +38,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Get a level's categories", t, func() {
-		level, err := LevelByID("yweon79l", NoEmbeds) // "Cerulean" of "Jet Force Gemini"
+		level, err := LevelByID(jfgCerulean, NoEmbeds)
 		categories, err := level.Categories(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(categories, ShouldNotBeNil)
@@ -45,7 +47,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Get a level's categories via embedding", t, func() {
-		level, err := LevelByID("yweon79l", "categories") // "Cerulean" of "Jet Force Gemini"
+		level, err := LevelByID(jfgCerulean, "categories")
 
 		before := requestCount
 		categories, err := level.Categories(nil, nil, NoEmbeds)
@@ -57,7 +59,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Get a level's variables", t, func() {
-		level, err := LevelByID("yweon79l", NoEmbeds) // "Cerulean" of "Jet Force Gemini"
+		level, err := LevelByID(jfgCerulean, NoEmbeds)
 		variables, err := level.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
@@ -66,7 +68,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Get a level's variables via embedding", t, func() {
-		level, err := LevelByID("yweon79l", "variables") // "Cerulean" of "Jet Force Gemini"
+		level, err := LevelByID(jfgCerulean, "variables")
 
 		before := requestCount
 		variables, err := level.Variables(nil)
@@ -78,7 +80,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Fetch the primary leaderboard for a level", t, func() {
-		level, err := LevelByID("zldypd3y", NoEmbeds) // GTA1 Liberty City
+		level, err := LevelByID(gta1LibertyCityGangstaBang, NoEmbeds)
 		leaderboard, err := level.PrimaryLeaderboard(nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(leaderboard, ShouldNotBeNil)
@@ -86,7 +88,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Fetch the records for a level", t, func() {
-		level, err := LevelByID("zldypd3y", NoEmbeds) // GTA1 Liberty City
+		level, err := LevelByID(gta1LibertyCityGangstaBang, NoEmbeds)
 		leaderboards, err := level.Records(nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(leaderboards, ShouldNotBeNil)
@@ -95,7 +97,7 @@ func TestLevels(t *testing.T) {
 	})
 
 	Convey("Fetch the runs for a level", t, func() {
-		level, err := LevelByID("zldypd3y", NoEmbeds) // GTA1 Liberty City
+		level, err := LevelByID(gta1LibertyCityGangstaBang, NoEmbeds)
 		runs, err := level.Runs(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(runs, ShouldNotBeNil)

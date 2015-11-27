@@ -9,12 +9,14 @@ import (
 )
 
 func TestCategories(t *testing.T) {
-	Convey("Fetching categories by valid IDs", t, func() {
-		id := "nxd1rk8q" // GTA VC Any%
+	gtavcAny := "nxd1rk8q"
+	gta1Any := "jzd368dn"
+	ctrAny := "w9d846kn"
 
-		category, err := CategoryByID(id, NoEmbeds)
+	Convey("Fetching categories by valid IDs", t, func() {
+		category, err := CategoryByID(gtavcAny, NoEmbeds)
 		So(err, ShouldBeNil)
-		So(category.ID, ShouldEqual, id)
+		So(category.ID, ShouldEqual, gtavcAny)
 		So(category.Name, ShouldEqual, "Any%")
 		So(category.Type, ShouldEqual, "per-game")
 		So(category.Weblink, ShouldNotBeEmpty)
@@ -32,7 +34,8 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Get a category's game", t, func() {
-		category, err := CategoryByID("nxd1rk8q", NoEmbeds)
+		category, err := CategoryByID(gtavcAny, NoEmbeds)
+
 		game, err := category.Game(NoEmbeds)
 		So(err, ShouldBeNil)
 		So(game, ShouldNotBeNil)
@@ -40,7 +43,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Get a category's game via embedding", t, func() {
-		category, err := CategoryByID("nxd1rk8q", "game")
+		category, err := CategoryByID(gtavcAny, "game")
 
 		before := requestCount
 		game, err := category.Game(NoEmbeds)
@@ -51,7 +54,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Get a category's variables", t, func() {
-		category, err := CategoryByID("w9d846kn", NoEmbeds) // CTR any%
+		category, err := CategoryByID(ctrAny, NoEmbeds)
 		variables, err := category.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
@@ -60,7 +63,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Get a category's variables via embedding", t, func() {
-		category, err := CategoryByID("w9d846kn", "variables") // CTR any%
+		category, err := CategoryByID(ctrAny, "variables")
 
 		before := requestCount
 		variables, err := category.Variables(nil)
@@ -72,7 +75,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Fetch the primary leaderboard for a category", t, func() {
-		category, err := CategoryByID("nxd1rk8q", NoEmbeds)
+		category, err := CategoryByID(gtavcAny, NoEmbeds)
 		leaderboard, err := category.PrimaryLeaderboard(&LeaderboardOptions{Top: 5}, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(leaderboard, ShouldNotBeNil)
@@ -80,7 +83,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Fetch the records for a per-game category", t, func() {
-		category, err := CategoryByID("nxd1rk8q", NoEmbeds)
+		category, err := CategoryByID(gtavcAny, NoEmbeds)
 		leaderboards, err := category.Records(nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(leaderboards, ShouldNotBeNil)
@@ -89,7 +92,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Fetch the records for a per-level category", t, func() {
-		category, err := CategoryByID("jzd368dn", NoEmbeds) // GTA1 Any%
+		category, err := CategoryByID(gta1Any, NoEmbeds) // GTA1 Any%
 		leaderboards, err := category.Records(nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(leaderboards, ShouldNotBeNil)
@@ -98,7 +101,7 @@ func TestCategories(t *testing.T) {
 	})
 
 	Convey("Fetch the runs for a category", t, func() {
-		category, err := CategoryByID("jzd368dn", NoEmbeds) // GTA1 Any%
+		category, err := CategoryByID(gta1Any, NoEmbeds) // GTA1 Any%
 		runs, err := category.Runs(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(runs, ShouldNotBeNil)

@@ -9,13 +9,13 @@ import (
 )
 
 func TestSeries(t *testing.T) {
-	Convey("Fetching series by valid IDs", t, func() {
-		id := "9v7og6n0" // GTA
+	gta := "9v7og6n0"
 
-		series, err := SeriesByID(id, NoEmbeds)
+	Convey("Fetching series by valid IDs", t, func() {
+		series, err := SeriesByID(gta, NoEmbeds)
 
 		So(err, ShouldBeNil)
-		So(series.ID, ShouldEqual, id)
+		So(series.ID, ShouldEqual, gta)
 		So(series.Names.International, ShouldEqual, "Grand Theft Auto")
 		So(series.Abbreviation, ShouldEqual, "gta")
 		So(series.Weblink, ShouldNotBeEmpty)
@@ -31,7 +31,7 @@ func TestSeries(t *testing.T) {
 		series, err := SeriesByAbbreviation("gta", NoEmbeds)
 
 		So(err, ShouldBeNil)
-		So(series.ID, ShouldEqual, "9v7og6n0")
+		So(series.ID, ShouldEqual, gta)
 		So(series.Names.International, ShouldEqual, "Grand Theft Auto")
 		So(series.Abbreviation, ShouldEqual, "gta")
 		So(series.Weblink, ShouldNotBeEmpty)
@@ -62,9 +62,7 @@ func TestSeries(t *testing.T) {
 	})
 
 	Convey("embed moderators in series", t, func() {
-		id := "9v7og6n0" // GTA
-
-		series, err := SeriesByID(id, "moderators")
+		series, err := SeriesByID(gta, "moderators")
 		So(err, ShouldBeNil)
 
 		before := requestCount
@@ -182,7 +180,7 @@ func TestSeries(t *testing.T) {
 	})
 
 	Convey("Fetching games of a series", t, func() {
-		series, err := SeriesByID("9v7og6n0", NoEmbeds) // Gameboy
+		series, err := SeriesByID(gta, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		games, err := series.Games(nil, nil, NoEmbeds)

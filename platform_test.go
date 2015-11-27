@@ -9,14 +9,13 @@ import (
 )
 
 func TestPlatforms(t *testing.T) {
+	gameboy := "o232q83p"
+
 	Convey("Fetching platforms by valid IDs", t, func() {
-		id := "o232q83p"
-
-		platform, err := PlatformByID(id)
-
+		platform, err := PlatformByID(gameboy)
 		So(err, ShouldBeNil)
-		So(platform.ID, ShouldEqual, id)
-		So(platform.Name, ShouldNotBeBlank)
+		So(platform.ID, ShouldEqual, gameboy)
+		So(platform.Name, ShouldEqual, "Game Boy")
 		So(platform.Links, ShouldNotBeEmpty)
 	})
 
@@ -102,7 +101,7 @@ func TestPlatforms(t *testing.T) {
 	})
 
 	Convey("Fetching runs of a platform", t, func() {
-		platform, err := PlatformByID("o232q83p") // Gameboy
+		platform, err := PlatformByID(gameboy)
 		So(err, ShouldBeNil)
 
 		runs, err := platform.Runs(nil, nil, NoEmbeds)
@@ -128,7 +127,7 @@ func TestPlatforms(t *testing.T) {
 	})
 
 	Convey("Fetching games of a platform", t, func() {
-		platform, err := PlatformByID("o232q83p") // Gameboy
+		platform, err := PlatformByID(gameboy)
 		So(err, ShouldBeNil)
 
 		games, err := platform.Games(nil, nil, NoEmbeds)

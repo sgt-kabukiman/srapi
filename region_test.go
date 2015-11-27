@@ -9,14 +9,14 @@ import (
 )
 
 func TestRegions(t *testing.T) {
+	iQue := "mol4z19n"
+	pal := "e6lxy1dz"
+
 	Convey("Fetching regions by valid IDs", t, func() {
-		id := "mol4z19n"
-
-		region, err := RegionByID(id)
-
+		region, err := RegionByID(iQue)
 		So(err, ShouldBeNil)
-		So(region.ID, ShouldEqual, id)
-		So(region.Name, ShouldNotBeBlank)
+		So(region.ID, ShouldEqual, iQue)
+		So(region.Name, ShouldEqual, "CHN / iQue")
 		So(region.Links, ShouldNotBeEmpty)
 	})
 
@@ -102,7 +102,7 @@ func TestRegions(t *testing.T) {
 	})
 
 	Convey("Fetching runs of a region", t, func() {
-		region, err := RegionByID("e6lxy1dz") // Europe/PAL
+		region, err := RegionByID(pal)
 		So(err, ShouldBeNil)
 
 		runs, err := region.Runs(nil, nil, NoEmbeds)
@@ -128,7 +128,7 @@ func TestRegions(t *testing.T) {
 	})
 
 	Convey("Fetching games of a region", t, func() {
-		region, err := RegionByID("e6lxy1dz") // Europe/PAL
+		region, err := RegionByID(pal)
 		So(err, ShouldBeNil)
 
 		games, err := region.Games(nil, nil, NoEmbeds)
