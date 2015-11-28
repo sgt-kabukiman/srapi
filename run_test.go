@@ -26,8 +26,8 @@ func TestRuns(t *testing.T) {
 		So(run.Status.VerifyDate.Format("2006-01-02T15:04:05Z"), ShouldEqual, "2015-08-23T02:33:17Z")
 		So(run.Date.Format("2006-01-02"), ShouldEqual, "2015-07-23")
 		So(run.Submitted.Format("2006-01-02T15:04:05Z"), ShouldEqual, "2015-08-23T02:13:18Z")
-		So(run.Times.Primary, ShouldEqual, "PT5M55S")
-		So(run.Times.Realtime, ShouldEqual, "PT5M55S")
+		So(run.Times.Primary.String(), ShouldEqual, "5m55s")
+		So(run.Times.Realtime.String(), ShouldEqual, "5m55s")
 		So(run.System.Platform, ShouldEqual, "lk3gl4jd")
 		So(run.System.Emulated, ShouldBeFalse)
 		So(run.System.Region, ShouldBeEmpty)
@@ -43,13 +43,21 @@ func TestRuns(t *testing.T) {
 		Convey("Check a run with a region", func() {
 			run, _ := RunByID("6yj1pwoy", NoEmbeds)
 			So(run.System.Region, ShouldEqual, "pr184lqn")
-			So(run.Times.IngameTime, ShouldEqual, "PT5M15S")
+			So(run.Times.IngameTime.String(), ShouldEqual, "5m15s")
 		})
 
 		Convey("Check a run with splits", func() {
 			run, _ := RunByID("x7z0ooz5", NoEmbeds)
 			So(run.Splits, ShouldNotBeNil)
 			So(run.Splits.URI, ShouldNotBeEmpty)
+		})
+
+		Convey("Check a run with milliseconds", func() {
+			run, _ := RunByID("dy43g2zl", NoEmbeds)
+			So(run.Times.Primary.Seconds(), ShouldAlmostEqual, 2164.890, 0.001)
+			So(run.Times.Realtime.Seconds(), ShouldAlmostEqual, 2164.890, 0.001)
+			So(run.Times.RealtimeWithoutLoads.Seconds(), ShouldAlmostEqual, 1492.240, 0.001)
+			So(run.Times.IngameTime.Seconds(), ShouldAlmostEqual, 1492, 0.001)
 		})
 	})
 

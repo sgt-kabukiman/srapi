@@ -4,6 +4,7 @@ package srapi
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -222,5 +223,33 @@ func (d *Date) UnmarshalJSON(b []byte) error {
 	}
 
 	d.Time = ret
+
+	return nil
+}
+
+// DurationParseError is an error that occurs when a JSON value is not a valid float value
+var DurationParseError = errors.New(`DurationParseError: value should be a valid float`)
+
+// Duration is a custom time.Time wrapper that allows dates without times in JSON
+// documents.
+type Duration struct {
+	time.Duration
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf("%.3f", d.Seconds())), nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	parsed, err := strconv.ParseFloat(string(b), 32)
+
+	if err != nil {
+		return DurationParseError
+	}
+
+	d.Duration = time.Duration(parsed * float64(time.Second))
+
 	return nil
 }

@@ -53,18 +53,17 @@ type Run struct {
 	// timing information, not all of them are filled all the time, except
 	// the Primary one
 	Times struct {
-		// primary time (as defined by the game's DefaultTime setting) as a
-		// ISO 8601 duration
-		Primary string
+		// primary time (as defined by the game's DefaultTime setting)
+		Primary *Duration `json:"primary_t"`
 
-		// realtime as a ISO 8601 duration
-		Realtime string
+		// realtime
+		Realtime *Duration `json:"realtime_t"`
 
-		// realtime without loading times as a ISO 8601 duration
-		RealtimeWithoutLoads string `json:"realtime_noloads"`
+		// realtime without loading
+		RealtimeWithoutLoads *Duration `json:"realtime_noloads_t"`
 
-		// in-game time a ISO 8601 duration
-		IngameTime string `json:"ingame"`
+		// in-game time
+		IngameTime *Duration `json:"ingame_t"`
 	}
 
 	// the system the run was done on
