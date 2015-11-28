@@ -31,7 +31,7 @@ func TestGames(t *testing.T) {
 		So(game.Ruleset.DefaultTime, ShouldEqual, TimingRealtime)
 		So(game.Ruleset.EmulatorsAllowed, ShouldBeTrue)
 		So(game.Romhack, ShouldBeFalse)
-		So(game.Created, ShouldNotBeEmpty)
+		So(game.Created.Format("2006-01-02T15:04:05Z"), ShouldEqual, "2014-12-07T12:50:20Z")
 		So(game.Assets, ShouldNotBeEmpty)
 		So(game.Links, ShouldNotBeEmpty)
 	})

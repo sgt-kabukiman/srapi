@@ -3,8 +3,10 @@
 package srapi
 
 import (
+	"errors"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // package version
@@ -189,3 +191,36 @@ const (
 	// is no information available about their actual level.
 	UnknownModLevel GameModLevel = "unknown"
 )
+
+// dateLayout describes the format for ISO 8601 dates
+var dateLayout = "2006-01-02"
+
+// DateParseError is an error that occurs when a JSON string is not a valid date
+var DateParseError = errors.New(`DateParseError: should be a string formatted as "2006-01-02"`)
+
+// Date is a custom time.Time wrapper that allows dates without times in JSON
+// documents.
+type Date struct {
+	time.Time
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (d Date) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + d.Format(dateLayout) + `"`), nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (d *Date) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if len(s) != len(`"2006-01-02"`) {
+		return DateParseError
+	}
+
+	ret, err := time.Parse(dateLayout, s[1:11])
+	if err != nil {
+		return err
+	}
+
+	d.Time = ret
+	return nil
+}

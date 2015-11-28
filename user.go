@@ -2,7 +2,10 @@
 
 package srapi
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
 // User represents a user.
 type User struct {
@@ -19,7 +22,7 @@ type User struct {
 		ColorTo   *NameColor `json:"color-to"`
 	} `json:"name-style"`
 	Role     string
-	Signup   string
+	Signup   *time.Time
 	Location struct {
 		Country Location
 		Region  *Location

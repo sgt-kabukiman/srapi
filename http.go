@@ -133,9 +133,9 @@ func (ac *apiClient) do(request request, dst interface{}) *Error {
 		URL:    u,
 		Header: map[string][]string{
 			"Accept-Encoding": {"gzip, deflate"},
-			"Accept": {"application/json, text/json"},
-			"User-Agent": {userAgent},
-			"Connection": {"keep-alive"},
+			"Accept":          {"application/json, text/json"},
+			"User-Agent":      {userAgent},
+			"Connection":      {"keep-alive"},
 		},
 	}
 

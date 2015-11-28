@@ -2,7 +2,10 @@
 
 package srapi
 
-import "net/url"
+import (
+	"net/url"
+	"time"
+)
 
 // Run represents a single run.
 type Run struct {
@@ -34,7 +37,7 @@ type Run struct {
 		Examiner string
 
 		// date when the run was verified
-		VerifyDate string `json:"verify-date"`
+		VerifyDate *time.Time `json:"verify-date"`
 
 		// If Status is "rejected", then this field possibly contains the reason
 		// for the rejection.
@@ -42,10 +45,10 @@ type Run struct {
 	}
 
 	// the date the run was done on
-	Date string
+	Date *Date
 
 	// the date the run was submitted to speedrun.com
-	Submitted string
+	Submitted *time.Time
 
 	// timing information, not all of them are filled all the time, except
 	// the Primary one

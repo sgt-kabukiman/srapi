@@ -31,7 +31,7 @@ func TestUsers(t *testing.T) {
 		So(user.NameStyle.ColorTo.Light, ShouldNotBeNil)
 		So(user.NameStyle.ColorTo.Dark, ShouldNotBeNil)
 		So(user.Role, ShouldEqual, "programmer")
-		So(user.Signup, ShouldNotBeEmpty)
+		So(user.Signup.Format("2006-01-02T15:04:05Z"), ShouldEqual, "2013-12-09T12:03:01Z")
 		So(user.Location.Country.Code, ShouldNotBeEmpty)
 		So(user.Twitch, ShouldNotBeNil)
 		So(user.Hitbox, ShouldNotBeNil)

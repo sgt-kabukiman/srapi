@@ -5,6 +5,7 @@ package srapi
 import (
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // Game represents a single game or romhack.
@@ -43,7 +44,7 @@ type Game struct {
 
 	// date and time when the game was added on speedrun.com; can be an empty
 	// string for old games
-	Created string
+	Created *time.Time
 
 	// list of assets (images) for the game page design on speedrun.com, like
 	// icons for trophies, background images etc.
