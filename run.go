@@ -44,6 +44,9 @@ type Run struct {
 	// the date the run was done on
 	Date string
 
+	// the date the run was submitted to speedrun.com
+	Submitted string
+
 	// timing information, not all of them are filled all the time, except
 	// the Primary one
 	Times struct {
