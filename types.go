@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -252,4 +253,34 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	d.Duration = time.Duration(parsed * float64(time.Second))
 
 	return nil
+}
+
+// Format returns a human readable time in the form of "[[HH:]MM:]SS[.MS]".
+func (d *Duration) Format() string {
+	hours := int(d.Hours())
+	minutes := int(d.Minutes()) % (3600)
+	seconds := int(d.Seconds()) % 60
+	milli := (d.Seconds() - float64(int(d.Seconds())))
+
+	list := make([]string, 0)
+
+	if hours > 0 {
+		list = append(list, fmt.Sprintf("%02d", hours))
+	}
+
+	if len(list) > 0 || minutes > 0 {
+		list = append(list, fmt.Sprintf("%02d", minutes))
+	}
+
+	if len(list) > 0 || seconds > 0 {
+		list = append(list, fmt.Sprintf("%02d", seconds))
+	}
+
+	formatted := strings.TrimPrefix(strings.Join(list, ":"), "0")
+
+	if milli >= 0.001 {
+		formatted += fmt.Sprintf(".%02d", int(milli*1000 + 0.5)) // +0.5 for easy rounding
+	}
+
+	return formatted
 }

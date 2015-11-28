@@ -27,6 +27,7 @@ func TestRuns(t *testing.T) {
 		So(run.Date.Format("2006-01-02"), ShouldEqual, "2015-07-23")
 		So(run.Submitted.Format("2006-01-02T15:04:05Z"), ShouldEqual, "2015-08-23T02:13:18Z")
 		So(run.Times.Primary.String(), ShouldEqual, "5m55s")
+		So(run.Times.Primary.Format(), ShouldEqual, "5:55")
 		So(run.Times.Realtime.String(), ShouldEqual, "5m55s")
 		So(run.System.Platform, ShouldEqual, "lk3gl4jd")
 		So(run.System.Emulated, ShouldBeFalse)
@@ -44,6 +45,7 @@ func TestRuns(t *testing.T) {
 			run, _ := RunByID("6yj1pwoy", NoEmbeds)
 			So(run.System.Region, ShouldEqual, "pr184lqn")
 			So(run.Times.IngameTime.String(), ShouldEqual, "5m15s")
+			So(run.Times.IngameTime.Format(), ShouldEqual, "5:15")
 		})
 
 		Convey("Check a run with splits", func() {
@@ -55,9 +57,13 @@ func TestRuns(t *testing.T) {
 		Convey("Check a run with milliseconds", func() {
 			run, _ := RunByID("dy43g2zl", NoEmbeds)
 			So(run.Times.Primary.Seconds(), ShouldAlmostEqual, 2164.890, 0.001)
+			So(run.Times.Primary.Format(), ShouldEqual, "36:04.890")
 			So(run.Times.Realtime.Seconds(), ShouldAlmostEqual, 2164.890, 0.001)
+			So(run.Times.Realtime.Format(), ShouldEqual, "36:04.890")
 			So(run.Times.RealtimeWithoutLoads.Seconds(), ShouldAlmostEqual, 1492.240, 0.001)
+			So(run.Times.RealtimeWithoutLoads.Format(), ShouldEqual, "24:52.240")
 			So(run.Times.IngameTime.Seconds(), ShouldAlmostEqual, 1492, 0.001)
+			So(run.Times.IngameTime.Format(), ShouldEqual, "24:52")
 		})
 	})
 
