@@ -9,6 +9,8 @@ import (
 )
 
 func TestUsers(t *testing.T) {
+	countRequests = true
+
 	pac := "wzx7q875"
 	odyssic := "gpj064jw"
 

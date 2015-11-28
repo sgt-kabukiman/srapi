@@ -7,6 +7,9 @@ import (
 	"strconv"
 )
 
+// package version
+const Version = "1.0"
+
 // requestable describes anything that can turn itself into a request.
 type requestable interface {
 	exists() bool

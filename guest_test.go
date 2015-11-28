@@ -9,6 +9,8 @@ import (
 )
 
 func TestGuests(t *testing.T) {
+	countRequests = true
+
 	Convey("Fetching valid guest names should succeed.", t, func() {
 		name := "SgtRockworth"
 

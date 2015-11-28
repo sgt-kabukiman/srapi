@@ -9,6 +9,8 @@ import (
 )
 
 func TestRegions(t *testing.T) {
+	countRequests = true
+
 	iQue := "mol4z19n"
 	pal := "e6lxy1dz"
 

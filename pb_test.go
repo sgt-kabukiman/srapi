@@ -9,6 +9,8 @@ import (
 )
 
 func TestPersonalBests(t *testing.T) {
+	countRequests = true
+
 	pac, _ := UserByID("wzx7q875")
 
 	Convey("Test fetching related resources", t, func() {

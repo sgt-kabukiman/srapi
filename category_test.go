@@ -9,6 +9,8 @@ import (
 )
 
 func TestCategories(t *testing.T) {
+	countRequests = true
+
 	gtavcAny := "nxd1rk8q"
 	gta1Any := "jzd368dn"
 	ctrAny := "w9d846kn"

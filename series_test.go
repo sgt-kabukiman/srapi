@@ -9,6 +9,8 @@ import (
 )
 
 func TestSeries(t *testing.T) {
+	countRequests = true
+
 	gta := "9v7og6n0"
 
 	Convey("Fetching series by valid IDs", t, func() {

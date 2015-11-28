@@ -9,6 +9,8 @@ import (
 )
 
 func TestLevels(t *testing.T) {
+	countRequests = true
+
 	crashTwinsanityJungleBungle := "lewp5z9n"
 	gta1LibertyCityGangstaBang := "zldypd3y"
 	jfgCerulean := "yweon79l"

@@ -38,14 +38,26 @@ var httpClient *apiClient
 // internal request counter, used for tests to determine if embeds worked
 var requestCount int
 
+// requests are only counted when this flag is set
+var countRequests bool
+
 // initialize the httpClient
 func init() {
 	httpClient = &apiClient{
 		baseURL: BaseURL,
 		client:  &http.Client{},
+		project: "",
 	}
 
 	requestCount = 0
+	countRequests = false
+}
+
+// SetProjectName can be used to append a custom string to the User-Agent header.
+// If the given value is not empty, it will be appended including a separator,
+// so give something like "myapp/1.0".
+func SetProjectName(name string) {
+	httpClient.project = name
 }
 
 // request represents all options relevant for making an actual HTTP request.
@@ -74,6 +86,9 @@ type request struct {
 type apiClient struct {
 	// the effective base url
 	baseURL string
+
+	// project name
+	project string
 
 	// the underlying, concurrency-safe HTTP client
 	client *http.Client
@@ -107,12 +122,26 @@ func (ac *apiClient) do(request request, dst interface{}) *Error {
 		u.RawQuery = values.Encode()
 	}
 
+	userAgent := "go-srapi/" + Version
+
+	if ac.project != "" {
+		userAgent = userAgent + "; " + ac.project
+	}
+
 	req := http.Request{
 		Method: request.method,
 		URL:    u,
+		Header: map[string][]string{
+			"Accept-Encoding": {"gzip, deflate"},
+			"Accept": {"application/json, text/json"},
+			"User-Agent": {userAgent},
+			"Connection": {"keep-alive"},
+		},
 	}
 
-	requestCount++
+	if countRequests {
+		requestCount++
+	}
 
 	// hit the network
 	response, err := ac.client.Do(&req)

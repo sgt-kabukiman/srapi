@@ -9,6 +9,8 @@ import (
 )
 
 func TestRuns(t *testing.T) {
+	countRequests = true
+
 	destinyWR := "dy4285nm"
 
 	Convey("Fetching runs by valid IDs", t, func() {

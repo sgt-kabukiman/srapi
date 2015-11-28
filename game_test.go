@@ -9,6 +9,8 @@ import (
 )
 
 func TestGames(t *testing.T) {
+	countRequests = true
+
 	superMarioSunshine := "v1pxjz68"
 	gtavc := "29d30dlp"
 

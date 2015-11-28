@@ -9,6 +9,8 @@ import (
 )
 
 func TestPlatforms(t *testing.T) {
+	countRequests = true
+
 	gameboy := "o232q83p"
 
 	Convey("Fetching platforms by valid IDs", t, func() {
