@@ -211,7 +211,7 @@ func TestRuns(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(players.Size(), ShouldEqual, 3)
 
-				for player := range players.Iterate() {
+				for _, player := range players.Players() {
 					if player.Guest != nil {
 						So(player.Guest.Name, ShouldBeIn, guests)
 					} else {
@@ -228,7 +228,7 @@ func TestRuns(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(players.Size(), ShouldEqual, 3)
 
-				for player := range players.Iterate() {
+				for _, player := range players.Players() {
 					if player.Guest != nil {
 						So(player.Guest.Name, ShouldBeIn, guests)
 					} else {

@@ -385,4 +385,112 @@ func TestGames(t *testing.T) {
 			So(runs.Data, ShouldHaveLength, 20)
 		})
 	})
+
+	Convey("Generic test for all collections", t, func() {
+		series, err := SeriesByAbbreviation("gta", NoEmbeds)
+		So(err, ShouldBeNil)
+		So(series, ShouldNotBeNil)
+
+		Convey("get the first item", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+
+			first := games.First()
+			So(first, ShouldNotBeNil)
+			So(first.ID, ShouldNotBeBlank)
+		})
+
+		Convey("iterate over the first few elements", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+			So(len(games.Data), ShouldBeGreaterThanOrEqualTo, 3)
+
+			idx := 0
+			ids := []string{
+				games.Data[0].ID,
+				games.Data[1].ID,
+				games.Data[2].ID,
+			}
+
+			iterator := games.Iterator()
+
+			for run := iterator.Start(); run != nil; run = iterator.Next() {
+				So(run.ID, ShouldEqual, ids[idx])
+				idx++
+
+				if idx == 3 {
+					break
+				}
+			}
+		})
+
+		Convey("walk over the first few elements", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+			So(len(games.Data), ShouldBeGreaterThanOrEqualTo, 3)
+
+			idx := 0
+			ids := []string{
+				games.Data[0].ID,
+				games.Data[1].ID,
+				games.Data[2].ID,
+			}
+
+			games.Walk(func(g *Game) bool {
+				So(g.ID, ShouldEqual, ids[idx])
+				idx++
+
+				return idx < 3
+			})
+
+			So(idx, ShouldEqual, 3)
+		})
+
+		Convey("scan for an ID", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+
+			So(games.ScanForID("m9dowk1p"), ShouldNotBeNil)
+			So(games.ScanForID("yo1yv1q5"), ShouldNotBeNil)
+			So(games.ScanForID("jy657deo"), ShouldNotBeNil)
+		})
+
+		Convey("return all games in the collection", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+
+			structs := games.Games()
+			expectedLen := len(games.Data)
+
+			So(len(structs), ShouldEqual, expectedLen)
+			So(structs[0].ID, ShouldEqual, games.Data[0].ID)
+		})
+
+		Convey("limit collection", func() {
+			games, err := series.Games(nil, nil, NoEmbeds)
+			So(err, ShouldBeNil)
+			So(games, ShouldNotBeNil)
+
+			games = games.Limit(3)
+
+			So(games.Size(true), ShouldEqual, 3)
+			So(games.Size(false), ShouldEqual, 3)
+			So(len(games.Games()), ShouldEqual, 3)
+			So(games.ScanForID("ok6qvxdg"), ShouldBeNil)
+
+			idx := 0
+
+			games.Walk(func(g *Game) bool {
+				idx++
+				return true
+			})
+
+			So(idx, ShouldEqual, 3)
+		})
+	})
 }

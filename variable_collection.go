@@ -8,11 +8,24 @@ package srapi
 type VariableCollection struct {
 	Data       []Variable
 	Pagination Pagination
+	limit      int
 }
 
 // VariableWalkerFunc is a function that can be used in Walk(). If it returns
 // true, walking continues, else the walk stops.
 type VariableWalkerFunc func(v *Variable) bool
+
+// Limit returns a copy of the collection that is limited to a maximum amount
+// of items in it. This is useful because the Cursor type does *not* affect
+// how many items are in a collection, but only how many are fetched per
+// request.
+func (c *VariableCollection) Limit(limit int) *VariableCollection {
+	return &VariableCollection{
+		Data:       c.Data,
+		Pagination: c.Pagination,
+		limit:      limit,
+	}
+}
 
 // Variables returns a list of pointers to the structs; used for cases where
 // there is no pagination and the caller wants to return a flat slice of items
@@ -45,14 +58,19 @@ func (c *VariableCollection) Walk(f VariableWalkerFunc) {
 // number cannot be determined without iterating over additional pages (which
 // requires network roundtrips) and fetchAllPages is set to false
 func (c *VariableCollection) Size(fetchAllPages bool) int {
+	length := len(c.Data)
+	if c.limit > 0 && length > c.limit {
+		length = c.limit
+	}
+
 	// we have a simple collection if no pagination information is set
 	if len(c.Pagination.Links) == 0 && c.Pagination.Max == 0 {
-		return len(c.Data)
+		return length
 	}
 
 	// we have only one page
 	if c.Pagination.Size < c.Pagination.Max {
-		return len(c.Data)
+		return length
 	}
 
 	if !fetchAllPages {
@@ -72,17 +90,6 @@ func (c *VariableCollection) Size(fetchAllPages bool) int {
 // Get returns the n-th element (the first one has idx 0) and nil if there is
 // no such index.
 func (c *VariableCollection) Get(idx int) *Variable {
-	// easy, the idx is on this page
-	if idx < len(c.Data) {
-		return &c.Data[idx]
-	}
-
-	// if there is no pagination information, we're out of luck
-	if len(c.Pagination.Links) == 0 {
-		return nil
-	}
-
-	// iterate through the data until we hit the idx we want
 	cur := 0
 	it := c.Iterator()
 
@@ -123,16 +130,20 @@ func (c *VariableCollection) ScanForID(id string) *Variable {
 // independent iterators starting from the same collection.
 func (c *VariableCollection) Iterator() VariableIterator {
 	return VariableIterator{
-		origin: c,
-		cursor: 0,
+		origin:    c,
+		cursor:    0,
+		limit:     c.limit,
+		remaining: c.limit,
 	}
 }
 
 // VariableIterator represents a list of variables.
 type VariableIterator struct {
-	origin *VariableCollection
-	page   *VariableCollection
-	cursor int
+	origin    *VariableCollection
+	page      *VariableCollection
+	cursor    int
+	limit     int
+	remaining int
 }
 
 // Start returns the iterator to the start of the original collection page
@@ -140,6 +151,7 @@ type VariableIterator struct {
 func (i *VariableIterator) Start() *Variable {
 	i.cursor = 0
 	i.page = i.origin
+	i.remaining = i.limit
 
 	return i.fetch()
 }
@@ -155,6 +167,15 @@ func (i *VariableIterator) Next() *Variable {
 // fetch tries to return the current item. If it doesn't exist, it attempts
 // to fetch the next page and return its first item.
 func (i *VariableIterator) fetch() *Variable {
+	// handle item limit
+	if i.limit > 0 {
+		if i.remaining <= 0 {
+			return nil
+		}
+
+		i.remaining--
+	}
+
 	// easy, just get the next item on the current page
 	if i.cursor < len(i.page.Data) {
 		return &i.page.Data[i.cursor]
