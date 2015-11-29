@@ -4,7 +4,7 @@ package srapi
 
 import "net/url"
 
-// Category is a structure representing a game category, either full-game or per-level.
+// Category is a structure representing a game category, either per-game or per-level.
 type Category struct {
 	// unique category ID
 	ID string
@@ -15,7 +15,7 @@ type Category struct {
 	// link to this category on speedrun.com
 	Weblink string
 
-	// either "full-game" or "per-level"
+	// either "per-game" or "per-level"
 	Type string
 
 	// ruleset for the category, arbitrary text
