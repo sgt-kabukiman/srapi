@@ -65,7 +65,7 @@ type Leaderboard struct {
 // normal runs do not have a rank; only those in leaderboards have.
 type RankedRun struct {
 	// the embedded run
-	Run
+	Run Run
 
 	// the rank, starting at 1
 	Rank int
