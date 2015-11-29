@@ -279,7 +279,7 @@ func (d *Duration) Format() string {
 	formatted := strings.TrimPrefix(strings.Join(list, ":"), "0")
 
 	if milli >= 0.001 {
-		formatted += fmt.Sprintf(".%02d", int(milli*1000 + 0.5)) // +0.5 for easy rounding
+		formatted += fmt.Sprintf(".%02d", int(milli*1000+0.5)) // +0.5 for easy rounding
 	}
 
 	return formatted

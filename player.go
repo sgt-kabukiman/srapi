@@ -9,6 +9,17 @@ type Player struct {
 	Guest *Guest
 }
 
+// Name returns the international name for the player.
+func (p *Player) Name() string {
+	if p.User != nil {
+		return p.User.Names.International
+	} else if p.Guest != nil {
+		return p.Guest.Name
+	} else {
+		return "(neither guest nor user)"
+	}
+}
+
 // PlayerLink is a special link that points to either a user (then ID is given)
 // or a guest (then Name is given).
 type PlayerLink struct {
