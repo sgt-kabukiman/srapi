@@ -78,82 +78,24 @@ func TestSeries(t *testing.T) {
 
 		mods, err := series.Moderators()
 		So(err, ShouldBeNil)
-		So(len(mods), ShouldBeBetween, 3, 100)
-		So(mods[0].Names.International, ShouldNotBeEmpty)
+		So(mods.Size(false), ShouldBeBetween, 3, 100)
+		So(mods.First().Names.International, ShouldNotBeEmpty)
 	})
 
 	Convey("Fetching multiple series", t, func() {
-		Convey("starting from the beginning", func() {
-			seriesList, err := ManySeries(nil, nil, nil, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldNotBeEmpty)
-			So(seriesList.Pagination.Offset, ShouldEqual, 0)
+		seriesList, err := ManySeries(nil, nil, &Cursor{0, 1}, NoEmbeds)
+		So(err, ShouldBeNil)
+		So(seriesList.Pagination.Offset, ShouldEqual, 0)
+		So(seriesList.Pagination.Max, ShouldEqual, 1)
 
-			series := seriesList.Data[0]
-			So(series.ID, ShouldNotBeBlank)
-			So(series.Names.International, ShouldNotBeBlank)
-			So(series.Links, ShouldNotBeEmpty)
-		})
+		num := 0
 
-		Convey("skipping the first few", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{2, 0}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldNotBeEmpty)
-			So(seriesList.Pagination.Offset, ShouldEqual, 2)
-			So(seriesList.Pagination.Links, ShouldNotBeEmpty)
+		// read a few pages, 7 is arbitrary
+		seriesList.Walk(func(s *Series) bool {
+			So(s.ID, ShouldNotBeBlank)
 
-			series := seriesList.Data[0]
-			So(series.ID, ShouldNotBeBlank)
-			So(series.Names.International, ShouldNotBeBlank)
-			So(series.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("limited to just a few", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{0, 3}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldHaveLength, 3)
-			So(seriesList.Pagination.Offset, ShouldEqual, 0)
-			So(seriesList.Pagination.Max, ShouldEqual, 3)
-			So(seriesList.Pagination.Links, ShouldNotBeEmpty)
-
-			series := seriesList.Data[0]
-			So(series.ID, ShouldNotBeBlank)
-			So(series.Names.International, ShouldNotBeBlank)
-			So(series.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("paging through the seriesList", func() {
-			seriesList, err := ManySeries(nil, nil, &Cursor{0, 1}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldHaveLength, 1)
-			So(seriesList.Pagination.Offset, ShouldEqual, 0)
-			So(seriesList.Pagination.Max, ShouldEqual, 1)
-
-			seriesList, err = seriesList.NextPage()
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldHaveLength, 1)
-			So(seriesList.Pagination.Offset, ShouldEqual, 1)
-			So(seriesList.Pagination.Max, ShouldEqual, 1)
-
-			seriesList, err = seriesList.NextPage()
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldHaveLength, 1)
-			So(seriesList.Pagination.Offset, ShouldEqual, 2)
-			So(seriesList.Pagination.Max, ShouldEqual, 1)
-
-			seriesList, err = seriesList.PrevPage()
-			So(err, ShouldBeNil)
-			So(seriesList.Data, ShouldHaveLength, 1)
-			So(seriesList.Pagination.Offset, ShouldEqual, 1)
-			So(seriesList.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			seriesList, err := ManySeries(nil, nil, nil, NoEmbeds)
-
-			seriesList, err = seriesList.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(seriesList, ShouldNotBeNil)
+			num++
+			return num < 7
 		})
 
 		Convey("test the SeriesFilter", func() {

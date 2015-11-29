@@ -91,38 +91,18 @@ func (pb *PersonalBest) Region() (*Region, *Error) {
 // Players returns a list of all players that aparticipated in this PB.
 // If they have not been embedded, they are fetched individually from the
 // network, one request per player.
-func (pb *PersonalBest) Players() ([]*Player, *Error) {
+func (pb *PersonalBest) Players() (*PlayerCollection, *Error) {
 	if pb.PlayersData == nil {
 		return pb.Run.Players()
 	}
 
-	return recastToPlayerList(pb.PlayersData), nil
+	return toPlayerCollection(pb.PlayersData), nil
 }
 
 // Examiner returns the user that examined the run after submission. This can
 // be nil.
 func (pb *PersonalBest) Examiner() (*User, *Error) {
 	return fetchUserLink(firstLink(&pb.Run, "examiner"))
-}
-
-// personalBestsResponse models the actual API response from the server
-type personalBestsResponse struct {
-	// the contained personal best runs
-	Data []PersonalBest
-}
-
-// personalBests returns a list of pointers to the PBs; used for cases where
-// there is no pagination and the caller wants to return a flat slice of
-// PBs instead of a collection (which would be misleading, as collections
-// imply pagination).
-func (pbr *personalBestsResponse) personalBests() []*PersonalBest {
-	var result []*PersonalBest
-
-	for idx := range pbr.Data {
-		result = append(result, &pbr.Data[idx])
-	}
-
-	return result
 }
 
 // PersonalBestFilter represents the possible filtering options when fetching a
@@ -163,19 +143,19 @@ func (pbf *PersonalBestFilter) applyToURL(u *url.URL) {
 
 // fetchVariables fetches a list of PBs from the network. It always
 // returns a collection, even when an error is returned.
-func fetchPersonalBests(request request) ([]*PersonalBest, *Error) {
-	result := &personalBestsResponse{}
+func fetchPersonalBests(request request) (*PersonalBestCollection, *Error) {
+	result := &PersonalBestCollection{}
 	err := httpClient.do(request, result)
 
-	return result.personalBests(), err
+	return result, err
 }
 
 // fetchPersonalBestsLink tries to fetch a given link and interpret the response as
 // a list of PBs. It always returns a collection, even when an error is
 // returned or the given link is nil.
-func fetchPersonalBestsLink(link requestable, filter *PersonalBestFilter, embeds string) ([]*PersonalBest, *Error) {
+func fetchPersonalBestsLink(link requestable, filter *PersonalBestFilter, embeds string) (*PersonalBestCollection, *Error) {
 	if !link.exists() {
-		return make([]*PersonalBest, 0), nil
+		return &PersonalBestCollection{}, nil
 	}
 
 	return fetchPersonalBests(link.request(filter, nil, embeds))

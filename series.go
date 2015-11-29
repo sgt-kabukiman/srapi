@@ -70,7 +70,7 @@ func (s *Series) ModeratorMap() map[string]GameModLevel {
 // Moderators returns a list of users that are moderators of the series. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
-func (s *Series) Moderators() ([]*User, *Error) {
+func (s *Series) Moderators() (*UserCollection, *Error) {
 	return recastToModerators(s.ModeratorsData)
 }
 
@@ -110,55 +110,9 @@ func (sf *SeriesFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// SeriesCollection is one page of the entire series list. It consists of the
-// series as well as some pagination information (like links to the next or
-// previous page).
-type SeriesCollection struct {
-	Data       []Series
-	Pagination Pagination
-}
-
 // ManySeries retrieves a collection of series.
 func ManySeries(f *SeriesFilter, s *Sorting, c *Cursor, embeds string) (*SeriesCollection, *Error) {
 	return fetchManySeries(request{"GET", "/series", f, s, c, embeds})
-}
-
-// series returns a list of pointers to the series; used for cases where there is
-// no pagination and the caller wants to return a flat slice of series instead of
-// a collection (which would be misleading, as collections imply pagination).
-func (sc *SeriesCollection) series() []*Series {
-	var result []*Series
-
-	for idx := range sc.Data {
-		result = append(result, &sc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// series. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (sc *SeriesCollection) NextPage() (*SeriesCollection, *Error) {
-	return sc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// series. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (sc *SeriesCollection) PrevPage() (*SeriesCollection, *Error) {
-	return sc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (sc *SeriesCollection) fetchLink(name string) (*SeriesCollection, *Error) {
-	next := firstLink(&sc.Pagination, name)
-	if next == nil {
-		return &SeriesCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchManySeries(next.request(nil, nil, ""))
 }
 
 // fetchOneSeries fetches a single series from the network. If the request failed,
@@ -189,11 +143,7 @@ func fetchOneSeriesLink(link requestable, embeds string) (*Series, *Error) {
 // returns a collection, even when an error is returned.
 func fetchManySeries(request request) (*SeriesCollection, *Error) {
 	result := &SeriesCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }

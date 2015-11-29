@@ -80,55 +80,9 @@ func (p *Platform) links() []Link {
 	return p.Links
 }
 
-// PlatformCollection is one page of a platform list. It consists of the platforms
-// as well as some pagination information (like links to the next or previous page).
-type PlatformCollection struct {
-	Data       []Platform
-	Pagination Pagination
-}
-
 // Platforms retrieves a collection of platforms
 func Platforms(s *Sorting, c *Cursor) (*PlatformCollection, *Error) {
 	return fetchPlatforms(request{"GET", "/platforms", nil, s, c, ""})
-}
-
-// platforms returns a list of pointers to the platforms; used for cases where
-// there is no pagination and the caller wants to return a flat slice of
-// platforms instead of a collection (which would be misleading, as collections
-// imply pagination).
-func (pc *PlatformCollection) platforms() []*Platform {
-	var result []*Platform
-
-	for idx := range pc.Data {
-		result = append(result, &pc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// platforms. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (pc *PlatformCollection) NextPage() (*PlatformCollection, *Error) {
-	return pc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// platforms. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (pc *PlatformCollection) PrevPage() (*PlatformCollection, *Error) {
-	return pc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (pc *PlatformCollection) fetchLink(name string) (*PlatformCollection, *Error) {
-	next := firstLink(&pc.Pagination, name)
-	if next == nil {
-		return &PlatformCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchPlatforms(next.request(nil, nil, ""))
 }
 
 // fetchPlatform fetches a single platform from the network. If the request failed,
@@ -148,11 +102,7 @@ func fetchPlatform(request request) (*Platform, *Error) {
 // returns a collection, even when an error is returned.
 func fetchPlatforms(request request) (*PlatformCollection, *Error) {
 	result := &PlatformCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }

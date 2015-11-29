@@ -116,7 +116,7 @@ func (u *User) ModeratedGames(filter *GameFilter, sort *Sorting, embeds string) 
 
 // PersonalBests fetches a list of PBs by the user, optionally filtered and
 // sorted.
-func (u *User) PersonalBests(filter *PersonalBestFilter, embeds string) ([]*PersonalBest, *Error) {
+func (u *User) PersonalBests(filter *PersonalBestFilter, embeds string) (*PersonalBestCollection, *Error) {
 	return fetchPersonalBestsLink(firstLink(u, "personal-bests"), filter, embeds)
 }
 
@@ -171,56 +171,10 @@ func (uf *UserFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// UserCollection is one page of the entire user list. It consists of the
-// users as well as some pagination information (like links to the next or
-// previous page).
-type UserCollection struct {
-	Data       []User
-	Pagination Pagination
-}
-
 // Users retrieves a collection of users from  speedrun.com. In most cases, you
 // will filter the game, as paging through *all* users takes A LOT of requests.
 func Users(f *UserFilter, s *Sorting, c *Cursor) (*UserCollection, *Error) {
 	return fetchUsers(request{"GET", "/users", f, s, c, ""})
-}
-
-// users returns a list of pointers to the users; used for cases where there is
-// no pagination and the caller wants to return a flat slice of users instead of
-// a collection (which would be misleading, as collections imply pagination).
-func (uc *UserCollection) users() []*User {
-	var result []*User
-
-	for idx := range uc.Data {
-		result = append(result, &uc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// users. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (uc *UserCollection) NextPage() (*UserCollection, *Error) {
-	return uc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// users. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (uc *UserCollection) PrevPage() (*UserCollection, *Error) {
-	return uc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (uc *UserCollection) fetchLink(name string) (*UserCollection, *Error) {
-	next := firstLink(&uc.Pagination, name)
-	if next == nil {
-		return &UserCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchUsers(next.request(nil, nil, ""))
 }
 
 // fetchUser fetches a single user from the network. If the request failed,
@@ -251,11 +205,7 @@ func fetchUserLink(link requestable) (*User, *Error) {
 // returns a collection, even when an error is returned.
 func fetchUsers(request request) (*UserCollection, *Error) {
 	result := &UserCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }

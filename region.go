@@ -77,55 +77,9 @@ func (r *Region) links() []Link {
 	return r.Links
 }
 
-// RegionCollection is one page of a region list. It consists of the regions
-// as well as some pagination information (like links to the next or previous page).
-type RegionCollection struct {
-	Data       []Region
-	Pagination Pagination
-}
-
 // Regions retrieves a collection of regions
 func Regions(s *Sorting, c *Cursor) (*RegionCollection, *Error) {
 	return fetchRegions(request{"GET", "/regions", nil, s, c, ""})
-}
-
-// regions returns a list of pointers to the regions; used for cases where
-// there is no pagination and the caller wants to return a flat slice of
-// regions instead of a collection (which would be misleading, as collections
-// imply pagination).
-func (rc *RegionCollection) regions() []*Region {
-	var result []*Region
-
-	for idx := range rc.Data {
-		result = append(result, &rc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// regions. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (rc *RegionCollection) NextPage() (*RegionCollection, *Error) {
-	return rc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// regions. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (rc *RegionCollection) PrevPage() (*RegionCollection, *Error) {
-	return rc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (rc *RegionCollection) fetchLink(name string) (*RegionCollection, *Error) {
-	next := firstLink(&rc.Pagination, name)
-	if next == nil {
-		return &RegionCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchRegions(next.request(nil, nil, ""))
 }
 
 // fetchRegion fetches a single region from the network. If the request failed,
@@ -145,11 +99,7 @@ func fetchRegion(request request) (*Region, *Error) {
 // returns a collection, even when an error is returned.
 func fetchRegions(request request) (*RegionCollection, *Error) {
 	result := &RegionCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }

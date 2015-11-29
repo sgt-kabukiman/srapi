@@ -44,8 +44,8 @@ func TestLevels(t *testing.T) {
 		categories, err := level.Categories(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(categories, ShouldNotBeNil)
-		So(categories, ShouldHaveLength, 3)
-		So(categories[0].Name, ShouldEqual, "All Tribals")
+		So(categories.Data, ShouldHaveLength, 3)
+		So(categories.Data[0].Name, ShouldEqual, "All Tribals")
 	})
 
 	Convey("Get a level's categories via embedding", t, func() {
@@ -55,8 +55,8 @@ func TestLevels(t *testing.T) {
 		categories, err := level.Categories(nil, nil, NoEmbeds)
 		So(err, ShouldBeNil)
 		So(categories, ShouldNotBeNil)
-		So(categories, ShouldHaveLength, 3)
-		So(categories[0].Name, ShouldEqual, "All Tribals")
+		So(categories.Data, ShouldHaveLength, 3)
+		So(categories.Data[0].Name, ShouldEqual, "All Tribals")
 		So(requestCount, ShouldEqual, before)
 	})
 
@@ -65,8 +65,8 @@ func TestLevels(t *testing.T) {
 		variables, err := level.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
-		So(variables, ShouldHaveLength, 3)
-		So(variables[0].Name, ShouldEqual, "Region")
+		So(variables.Data, ShouldHaveLength, 3)
+		So(variables.Data[0].Name, ShouldEqual, "Region")
 	})
 
 	Convey("Get a level's variables via embedding", t, func() {
@@ -76,8 +76,8 @@ func TestLevels(t *testing.T) {
 		variables, err := level.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
-		So(variables, ShouldHaveLength, 3)
-		So(variables[0].Name, ShouldEqual, "Region")
+		So(variables.Data, ShouldHaveLength, 3)
+		So(variables.Data[0].Name, ShouldEqual, "Region")
 		So(requestCount, ShouldEqual, before)
 	})
 

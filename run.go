@@ -199,8 +199,8 @@ func (r *Run) Region() (*Region, *Error) {
 // Players returns a list of all players that aparticipated in this run.
 // If they have not been embedded, they are fetched individually from the
 // network, one request per player.
-func (r *Run) Players() ([]*Player, *Error) {
-	var result []*Player
+func (r *Run) Players() (*PlayerCollection, *Error) {
+	result := &PlayerCollection{}
 
 	switch asserted := r.PlayersData.(type) {
 	// list of simple links to users/guests, e.g. players=[{rel:..,id:...}, {...}]
@@ -214,13 +214,13 @@ func (r *Run) Players() ([]*Player, *Error) {
 					return result, err
 				}
 
-				result = append(result, player)
+				result.Data = append(result.Data, *player)
 			}
 		}
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		result = recastToPlayerList(r.PlayersData)
+		result = toPlayerCollection(r.PlayersData)
 	}
 
 	return result, nil
@@ -320,55 +320,9 @@ func (rf *RunFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// RunCollection is one page of a run list. It consists of the runs as well as
-// some pagination information (like links to the next or previous page).
-type RunCollection struct {
-	Data       []Run
-	Pagination Pagination
-}
-
 // Runs retrieves a collection of runs, most likely filtered and sorted.
 func Runs(f *RunFilter, s *Sorting, c *Cursor, embeds string) (*RunCollection, *Error) {
 	return fetchRuns(request{"GET", "/runs", f, s, c, embeds})
-}
-
-// runs returns a list of pointers to the runs; used for cases where
-// there is no pagination and the caller wants to return a flat slice of
-// runs instead of a collection (which would be misleading, as collections
-// imply pagination).
-func (rc *RunCollection) runs() []*Run {
-	var result []*Run
-
-	for idx := range rc.Data {
-		result = append(result, &rc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// runs. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (rc *RunCollection) NextPage() (*RunCollection, *Error) {
-	return rc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// runs. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (rc *RunCollection) PrevPage() (*RunCollection, *Error) {
-	return rc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (rc *RunCollection) fetchLink(name string) (*RunCollection, *Error) {
-	next := firstLink(&rc.Pagination, name)
-	if next == nil {
-		return &RunCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchRunsLink(next, nil, nil, "")
 }
 
 // fetchRun fetches a single run from the network. If the request failed,
@@ -389,13 +343,9 @@ func fetchRun(request request) (*Run, *Error) {
 // nil is returned.
 func fetchRuns(request request) (*RunCollection, *Error) {
 	result := &RunCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 // fetchRunsLink tries to fetch a given link and interpret the response as

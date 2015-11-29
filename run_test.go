@@ -74,74 +74,19 @@ func TestRuns(t *testing.T) {
 	})
 
 	Convey("Fetching multiple runs", t, func() {
-		Convey("starting from the beginning", func() {
-			runs, err := Runs(nil, nil, nil, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldNotBeEmpty)
-			So(runs.Pagination.Offset, ShouldEqual, 0)
+		runs, err := Runs(nil, nil, &Cursor{0, 1}, NoEmbeds)
+		So(err, ShouldBeNil)
+		So(runs.Pagination.Offset, ShouldEqual, 0)
+		So(runs.Pagination.Max, ShouldEqual, 1)
 
-			run := runs.Data[0]
-			So(run.ID, ShouldNotBeBlank)
-			So(run.Links, ShouldNotBeEmpty)
-		})
+		num := 0
 
-		Convey("skipping the first few", func() {
-			runs, err := Runs(nil, nil, &Cursor{2, 0}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldNotBeEmpty)
-			So(runs.Pagination.Offset, ShouldEqual, 2)
-			So(runs.Pagination.Links, ShouldNotBeEmpty)
+		// read a few pages, 7 is arbitrary
+		runs.Walk(func(r *Run) bool {
+			So(r.ID, ShouldNotBeBlank)
 
-			run := runs.Data[0]
-			So(run.ID, ShouldNotBeBlank)
-			So(run.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("limited to just a few", func() {
-			runs, err := Runs(nil, nil, &Cursor{0, 3}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldHaveLength, 3)
-			So(runs.Pagination.Offset, ShouldEqual, 0)
-			So(runs.Pagination.Max, ShouldEqual, 3)
-			So(runs.Pagination.Links, ShouldNotBeEmpty)
-
-			run := runs.Data[0]
-			So(run.ID, ShouldNotBeBlank)
-			So(run.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("paging through the runs", func() {
-			runs, err := Runs(nil, nil, &Cursor{0, 1}, NoEmbeds)
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldHaveLength, 1)
-			So(runs.Pagination.Offset, ShouldEqual, 0)
-			So(runs.Pagination.Max, ShouldEqual, 1)
-
-			runs, err = runs.NextPage()
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldHaveLength, 1)
-			So(runs.Pagination.Offset, ShouldEqual, 1)
-			So(runs.Pagination.Max, ShouldEqual, 1)
-
-			runs, err = runs.NextPage()
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldHaveLength, 1)
-			So(runs.Pagination.Offset, ShouldEqual, 2)
-			So(runs.Pagination.Max, ShouldEqual, 1)
-
-			runs, err = runs.PrevPage()
-			So(err, ShouldBeNil)
-			So(runs.Data, ShouldHaveLength, 1)
-			So(runs.Pagination.Offset, ShouldEqual, 1)
-			So(runs.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			runs, err := Runs(nil, nil, nil, NoEmbeds)
-
-			runs, err = runs.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(runs, ShouldNotBeNil)
+			num++
+			return num < 7
 		})
 	})
 
@@ -264,9 +209,9 @@ func TestRuns(t *testing.T) {
 
 				players, err := run.Players()
 				So(err, ShouldBeNil)
-				So(players, ShouldHaveLength, 3)
+				So(players.Size(), ShouldEqual, 3)
 
-				for _, player := range players {
+				for player := range players.Iterate() {
 					if player.Guest != nil {
 						So(player.Guest.Name, ShouldBeIn, guests)
 					} else {
@@ -281,9 +226,9 @@ func TestRuns(t *testing.T) {
 				before := requestCount
 				players, err := run.Players()
 				So(err, ShouldBeNil)
-				So(players, ShouldHaveLength, 3)
+				So(players.Size(), ShouldEqual, 3)
 
-				for _, player := range players {
+				for player := range players.Iterate() {
 					if player.Guest != nil {
 						So(player.Guest.Name, ShouldBeIn, guests)
 					} else {

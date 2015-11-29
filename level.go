@@ -82,39 +82,23 @@ func (l *Level) Game(embeds string) (*Game, *Error) {
 // Categories extracts the embedded categories, if possible, otherwise it will
 // fetch them by doing one additional request. filter and sort are only relevant
 // when the categories are not already embedded.
-func (l *Level) Categories(filter *CategoryFilter, sort *Sorting, embeds string) ([]*Category, *Error) {
-	var collection *CategoryCollection
-	var err *Error
-
+func (l *Level) Categories(filter *CategoryFilter, sort *Sorting, embeds string) (*CategoryCollection, *Error) {
 	if l.CategoriesData == nil {
-		collection, err = fetchCategoriesLink(firstLink(l, "categories"), filter, sort, embeds)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		collection = toCategoryCollection(l.CategoriesData)
+		return fetchCategoriesLink(firstLink(l, "categories"), filter, sort, embeds)
 	}
 
-	return collection.categories(), nil
+	return toCategoryCollection(l.CategoriesData), nil
 }
 
 // Variables extracts the embedded variables, if possible, otherwise it will
 // fetch them by doing one additional request. sort is only relevant when the
 // variables are not already embedded.
-func (l *Level) Variables(sort *Sorting) ([]*Variable, *Error) {
-	var collection *VariableCollection
-	var err *Error
-
+func (l *Level) Variables(sort *Sorting) (*VariableCollection, *Error) {
 	if l.VariablesData == nil {
-		collection, err = fetchVariablesLink(firstLink(l, "variables"), nil, sort)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		collection = toVariableCollection(l.VariablesData)
+		return fetchVariablesLink(firstLink(l, "variables"), nil, sort)
 	}
 
-	return collection.variables(), nil
+	return toVariableCollection(l.VariablesData), nil
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the level.
@@ -140,52 +124,6 @@ func (l *Level) links() []Link {
 	return l.Links
 }
 
-// LevelCollection is one page of a level list. It consists of the levels as
-// well as some pagination information (like links to the next or previous page).
-type LevelCollection struct {
-	Data       []Level
-	Pagination Pagination
-}
-
-// levels returns a list of pointers to the levels; used for cases where
-// there is no pagination and the caller wants to return a flat slice of levels
-// instead of a collection (which would be misleading, as collections imply
-// pagination).
-func (lc *LevelCollection) levels() []*Level {
-	var result []*Level
-
-	for idx := range lc.Data {
-		result = append(result, &lc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// levels. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (lc *LevelCollection) NextPage() (*LevelCollection, *Error) {
-	return lc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// levels. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (lc *LevelCollection) PrevPage() (*LevelCollection, *Error) {
-	return lc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (lc *LevelCollection) fetchLink(name string) (*LevelCollection, *Error) {
-	next := firstLink(&lc.Pagination, name)
-	if next == nil {
-		return &LevelCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchLevelsLink(next, nil, nil, "")
-}
-
 // fetchLevel fetches a single level from the network. If the request failed,
 // the returned level is nil. Otherwise, the error is nil.
 func fetchLevel(request request) (*Level, *Error) {
@@ -203,13 +141,9 @@ func fetchLevel(request request) (*Level, *Error) {
 // returns a collection, even when an error is returned.
 func fetchLevels(request request) (*LevelCollection, *Error) {
 	result := &LevelCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 // fetchLevelsLink tries to fetch a given link and interpret the response as

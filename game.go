@@ -147,7 +147,7 @@ func (g *Game) PlatformIDs() ([]string, *Error) {
 			return result, err
 		}
 
-		for _, platform := range platforms {
+		for _, platform := range platforms.Platforms() {
 			result = append(result, platform.ID)
 		}
 	}
@@ -158,8 +158,8 @@ func (g *Game) PlatformIDs() ([]string, *Error) {
 // Platforms returns a list of pointers to platform structs. If platforms were
 // not embedded, they are fetched from the network, causing one request per
 // platform.
-func (g *Game) Platforms() ([]*Platform, *Error) {
-	var result []*Platform
+func (g *Game) Platforms() (*PlatformCollection, *Error) {
+	var result *PlatformCollection
 
 	switch asserted := g.PlatformsData.(type) {
 	// list of IDs (strings)
@@ -169,18 +169,20 @@ func (g *Game) Platforms() ([]*Platform, *Error) {
 			return result, err
 		}
 
+		result = &PlatformCollection{}
+
 		for _, id := range ids {
 			platform, err := PlatformByID(id)
 			if err != nil {
 				return result, err
 			}
 
-			result = append(result, platform)
+			result.Data = append(result.Data, *platform)
 		}
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		result = toPlatformCollection(asserted).platforms()
+		result = toPlatformCollection(asserted)
 	}
 
 	return result, nil
@@ -210,7 +212,7 @@ func (g *Game) RegionIDs() ([]string, *Error) {
 			return result, err
 		}
 
-		for _, region := range regions {
+		for _, region := range regions.Regions() {
 			result = append(result, region.ID)
 		}
 	}
@@ -221,8 +223,8 @@ func (g *Game) RegionIDs() ([]string, *Error) {
 // Regions returns a list of pointers to region structs. If regions were
 // not embedded, they are fetched from the network, causing one request per
 // region.
-func (g *Game) Regions() ([]*Region, *Error) {
-	var result []*Region
+func (g *Game) Regions() (*RegionCollection, *Error) {
+	var result *RegionCollection
 
 	switch asserted := g.RegionsData.(type) {
 	// list of IDs (strings)
@@ -232,18 +234,20 @@ func (g *Game) Regions() ([]*Region, *Error) {
 			return result, err
 		}
 
+		result = &RegionCollection{}
+
 		for _, id := range ids {
 			region, err := RegionByID(id)
 			if err != nil {
 				return result, err
 			}
 
-			result = append(result, region)
+			result.Data = append(result.Data, *region)
 		}
 
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
-		result = toRegionCollection(asserted).regions()
+		result = toRegionCollection(asserted)
 	}
 
 	return result, nil
@@ -252,57 +256,33 @@ func (g *Game) Regions() ([]*Region, *Error) {
 // Categories returns the list of categories for this game. If they were not
 // embedded, one additional request is performed and only then are filter and
 // sort taken into account.
-func (g *Game) Categories(filter *CategoryFilter, sort *Sorting, embeds string) ([]*Category, *Error) {
-	var collection *CategoryCollection
-	var err *Error
-
+func (g *Game) Categories(filter *CategoryFilter, sort *Sorting, embeds string) (*CategoryCollection, *Error) {
 	if g.CategoriesData == nil {
-		collection, err = fetchCategoriesLink(firstLink(g, "categories"), filter, sort, embeds)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		collection = toCategoryCollection(g.CategoriesData)
+		return fetchCategoriesLink(firstLink(g, "categories"), filter, sort, embeds)
 	}
 
-	return collection.categories(), nil
+	return toCategoryCollection(g.CategoriesData), nil
 }
 
 // Levels returns the list of levels for this game. If they were not embedded,
 // one additional request is performed and only then is sort taken into account.
-func (g *Game) Levels(sort *Sorting, embeds string) ([]*Level, *Error) {
-	var collection *LevelCollection
-	var err *Error
-
+func (g *Game) Levels(sort *Sorting, embeds string) (*LevelCollection, *Error) {
 	if g.LevelsData == nil {
-		collection, err = fetchLevelsLink(firstLink(g, "levels"), nil, sort, embeds)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		collection = toLevelCollection(g.LevelsData)
+		return fetchLevelsLink(firstLink(g, "levels"), nil, sort, embeds)
 	}
 
-	return collection.levels(), nil
+	return toLevelCollection(g.LevelsData), nil
 }
 
 // Variables returns the list of variables for this game. If they were not
 // embedded, one additional request is performed and only then is sort taken
 // into account.
-func (g *Game) Variables(sort *Sorting) ([]*Variable, *Error) {
-	var collection *VariableCollection
-	var err *Error
-
+func (g *Game) Variables(sort *Sorting) (*VariableCollection, *Error) {
 	if g.VariablesData == nil {
-		collection, err = fetchVariablesLink(firstLink(g, "variables"), nil, sort)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		collection = toVariableCollection(g.VariablesData)
+		return fetchVariablesLink(firstLink(g, "variables"), nil, sort)
 	}
 
-	return collection.variables(), nil
+	return toVariableCollection(g.VariablesData), nil
 }
 
 // Romhacks returns a game collection containing the romhacks for the game.
@@ -324,7 +304,7 @@ func (g *Game) ModeratorMap() map[string]GameModLevel {
 // Moderators returns a list of users that are moderators of the game. If
 // moderators were not embedded, they will be fetched individually from the
 // network.
-func (g *Game) Moderators() ([]*User, *Error) {
+func (g *Game) Moderators() (*UserCollection, *Error) {
 	return recastToModerators(g.ModeratorsData)
 }
 
@@ -401,58 +381,12 @@ func (gf *GameFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// GameCollection is one page of the entire game list. It consists of the
-// games as well as some pagination information (like links to the next or
-// previous page).
-type GameCollection struct {
-	Data       []Game
-	Pagination Pagination
-}
-
 // Games retrieves a collection of games from the entire set of games on
 // speedrun.com. In most cases, you will filter the game, as paging through
 // *all* games takes A LOT of requests. For this, you should use BulkMode, which
 // is not yet supported by this API.
 func Games(f *GameFilter, s *Sorting, c *Cursor, embeds string) (*GameCollection, *Error) {
 	return fetchGames(request{"GET", "/games", f, s, c, embeds})
-}
-
-// games returns a list of pointers to the games; used for cases where there is
-// no pagination and the caller wants to return a flat slice of games instead of
-// a collection (which would be misleading, as collections imply pagination).
-func (gc *GameCollection) games() []*Game {
-	var result []*Game
-
-	for idx := range gc.Data {
-		result = append(result, &gc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// games. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (gc *GameCollection) NextPage() (*GameCollection, *Error) {
-	return gc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// games. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (gc *GameCollection) PrevPage() (*GameCollection, *Error) {
-	return gc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (gc *GameCollection) fetchLink(name string) (*GameCollection, *Error) {
-	next := firstLink(&gc.Pagination, name)
-	if next == nil {
-		return &GameCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchGamesLink(next, nil, nil, "")
 }
 
 // fetchGame fetches a single game from the network. If the request failed,
@@ -483,13 +417,9 @@ func fetchGameLink(link requestable, embeds string) (*Game, *Error) {
 // returns a collection, even when an error is returned.
 func fetchGames(request request) (*GameCollection, *Error) {
 	result := &GameCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 // fetchGamesLink tries to fetch a given link and interpret the response as

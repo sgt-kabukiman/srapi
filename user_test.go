@@ -48,77 +48,19 @@ func TestUsers(t *testing.T) {
 	})
 
 	Convey("Fetching multiple users", t, func() {
-		Convey("starting from the beginning", func() {
-			users, err := Users(nil, nil, nil)
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldNotBeEmpty)
-			So(users.Pagination.Offset, ShouldEqual, 0)
+		users, err := Users(nil, nil, &Cursor{0, 1})
+		So(err, ShouldBeNil)
+		So(users.Pagination.Offset, ShouldEqual, 0)
+		So(users.Pagination.Max, ShouldEqual, 1)
 
-			user := users.Data[0]
-			So(user.ID, ShouldNotBeBlank)
-			So(user.Names.International, ShouldNotBeBlank)
-			So(user.Links, ShouldNotBeEmpty)
-		})
+		num := 0
 
-		Convey("skipping the first few", func() {
-			users, err := Users(nil, nil, &Cursor{2, 0})
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldNotBeEmpty)
-			So(users.Pagination.Offset, ShouldEqual, 2)
-			So(users.Pagination.Links, ShouldNotBeEmpty)
+		// read a few pages, 7 is arbitrary
+		users.Walk(func(u *User) bool {
+			So(u.ID, ShouldNotBeBlank)
 
-			user := users.Data[0]
-			So(user.ID, ShouldNotBeBlank)
-			So(user.Names.International, ShouldNotBeBlank)
-			So(user.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("limited to just a few", func() {
-			users, err := Users(nil, nil, &Cursor{0, 3})
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldHaveLength, 3)
-			So(users.Pagination.Offset, ShouldEqual, 0)
-			So(users.Pagination.Max, ShouldEqual, 3)
-			So(users.Pagination.Links, ShouldNotBeEmpty)
-
-			user := users.Data[0]
-			So(user.ID, ShouldNotBeBlank)
-			So(user.Names.International, ShouldNotBeBlank)
-			So(user.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("paging through the users", func() {
-			users, err := Users(nil, nil, &Cursor{0, 1})
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldHaveLength, 1)
-			So(users.Pagination.Offset, ShouldEqual, 0)
-			So(users.Pagination.Max, ShouldEqual, 1)
-
-			users, err = users.NextPage()
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldHaveLength, 1)
-			So(users.Pagination.Offset, ShouldEqual, 1)
-			So(users.Pagination.Max, ShouldEqual, 1)
-
-			users, err = users.NextPage()
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldHaveLength, 1)
-			So(users.Pagination.Offset, ShouldEqual, 2)
-			So(users.Pagination.Max, ShouldEqual, 1)
-
-			users, err = users.PrevPage()
-			So(err, ShouldBeNil)
-			So(users.Data, ShouldHaveLength, 1)
-			So(users.Pagination.Offset, ShouldEqual, 1)
-			So(users.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			users, err := Users(nil, nil, nil)
-
-			users, err = users.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(users, ShouldNotBeNil)
+			num++
+			return num < 7
 		})
 
 		Convey("check the lookup filter", func() {
@@ -165,19 +107,17 @@ func TestUsers(t *testing.T) {
 		firstID := ""
 
 		Convey("first page of runs should be fine", func() {
-			So(runs.Data, ShouldNotBeEmpty)
 			So(runs.Pagination.Offset, ShouldEqual, 0)
 
-			firstID = runs.Data[0].ID
+			firstID = runs.First().ID
 		})
 
 		runs, err = user.Runs(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
-			So(runs.Data, ShouldNotBeEmpty)
 			So(runs.Pagination.Offset, ShouldEqual, 0)
-			So(firstID, ShouldNotEqual, runs.Data[0].ID)
+			So(firstID, ShouldNotEqual, runs.First().ID)
 		})
 	})
 
@@ -191,19 +131,17 @@ func TestUsers(t *testing.T) {
 		firstID := ""
 
 		Convey("first page of games should be fine", func() {
-			So(games.Data, ShouldNotBeEmpty)
 			So(games.Pagination.Offset, ShouldEqual, 0)
 
-			firstID = games.Data[0].ID
+			firstID = games.First().ID
 		})
 
 		games, err = user.ModeratedGames(nil, &Sorting{Direction: Descending}, NoEmbeds)
 		So(err, ShouldBeNil)
 
 		Convey("sorting order should be taken into account", func() {
-			So(games.Data, ShouldNotBeEmpty)
 			So(games.Pagination.Offset, ShouldEqual, 0)
-			So(firstID, ShouldNotEqual, games.Data[0].ID)
+			So(firstID, ShouldNotEqual, games.First().ID)
 		})
 	})
 
@@ -214,27 +152,26 @@ func TestUsers(t *testing.T) {
 		Convey("unfiltered", func() {
 			pbs, err := user.PersonalBests(nil, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(pbs, ShouldNotBeEmpty)
-			So(pbs[0].Rank, ShouldBeGreaterThanOrEqualTo, 1)
-			So(pbs[0].Run.ID, ShouldNotBeEmpty)
+			So(pbs.First().Rank, ShouldBeGreaterThanOrEqualTo, 1)
+			So(pbs.First().Run.ID, ShouldNotBeEmpty)
 		})
 
 		Convey("only first place", func() {
 			pbs, err := user.PersonalBests(&PersonalBestFilter{Top: 1}, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(len(pbs), ShouldBeLessThan, 5)
+			So(pbs.Size(false), ShouldBeLessThan, 5)
 		})
 
 		Convey("only in one series", func() {
 			pbs, err := user.PersonalBests(&PersonalBestFilter{Top: 1, Series: "049rqr4v"}, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(pbs, ShouldHaveLength, 1)
+			So(pbs.Size(false), ShouldEqual, 1)
 		})
 
 		Convey("only in one game", func() {
 			pbs, err := user.PersonalBests(&PersonalBestFilter{Game: "om1m3625"}, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(pbs, ShouldHaveLength, 1)
+			So(pbs.Size(false), ShouldEqual, 1)
 		})
 	})
 }

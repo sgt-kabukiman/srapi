@@ -68,8 +68,3 @@ func (pl *PlayerLink) fetch() (*Player, *Error) {
 
 	return player, nil
 }
-
-// playerCollection is a list of players, used inside Run structs
-type playerCollection struct {
-	Data []map[string]interface{}
-}

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// package version
+// Version is the package version.
 const Version = "1.0"
 
 // requestable describes anything that can turn itself into a request.
@@ -101,7 +101,7 @@ const (
 	Descending
 )
 
-// use this to denote no embeds
+// NoEmbeds can be used to denote no embeds.
 const NoEmbeds = ""
 
 // Sorting represents the sorting options when requesting a list of items from the API.
@@ -197,8 +197,8 @@ const (
 // dateLayout describes the format for ISO 8601 dates
 var dateLayout = "2006-01-02"
 
-// DateParseError is an error that occurs when a JSON string is not a valid date
-var DateParseError = errors.New(`DateParseError: should be a string formatted as "2006-01-02"`)
+// ErrParseDate is an error that occurs when a JSON string is not a valid date
+var ErrParseDate = errors.New(`ErrParseDate: should be a string formatted as "2006-01-02"`)
 
 // Date is a custom time.Time wrapper that allows dates without times in JSON
 // documents.
@@ -215,7 +215,7 @@ func (d Date) MarshalJSON() ([]byte, error) {
 func (d *Date) UnmarshalJSON(b []byte) error {
 	s := string(b)
 	if len(s) != len(`"2006-01-02"`) {
-		return DateParseError
+		return ErrParseDate
 	}
 
 	ret, err := time.Parse(dateLayout, s[1:11])
@@ -228,8 +228,8 @@ func (d *Date) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// DurationParseError is an error that occurs when a JSON value is not a valid float value
-var DurationParseError = errors.New(`DurationParseError: value should be a valid float`)
+// ErrParseDuration is an error that occurs when a JSON value is not a valid float value
+var ErrParseDuration = errors.New(`ErrParseDuration: value should be a valid float`)
 
 // Duration is a custom time.Time wrapper that allows dates without times in JSON
 // documents.
@@ -247,7 +247,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	parsed, err := strconv.ParseFloat(string(b), 32)
 
 	if err != nil {
-		return DurationParseError
+		return ErrParseDuration
 	}
 
 	d.Duration = time.Duration(parsed * float64(time.Second))
@@ -262,7 +262,7 @@ func (d *Duration) Format() string {
 	seconds := int(d.Seconds()) % 60
 	milli := (d.Seconds() - float64(int(d.Seconds())))
 
-	list := make([]string, 0)
+	var list []string
 
 	if hours > 0 {
 		list = append(list, fmt.Sprintf("%02d", hours))

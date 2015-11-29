@@ -53,10 +53,10 @@ func TestGames(t *testing.T) {
 		Convey("starting from the beginning", func() {
 			games, err := Games(nil, nil, nil, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(games.Data, ShouldNotBeEmpty)
 			So(games.Pagination.Offset, ShouldEqual, 0)
 
-			game := games.Data[0]
+			game := games.First()
+			So(game, ShouldNotBeNil)
 			So(game.ID, ShouldNotBeBlank)
 			So(game.Names.International, ShouldNotBeBlank)
 			So(game.Links, ShouldNotBeEmpty)
@@ -65,11 +65,11 @@ func TestGames(t *testing.T) {
 		Convey("skipping the first few", func() {
 			games, err := Games(nil, nil, &Cursor{2, 0}, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(games.Data, ShouldNotBeEmpty)
 			So(games.Pagination.Offset, ShouldEqual, 2)
 			So(games.Pagination.Links, ShouldNotBeEmpty)
 
-			game := games.Data[0]
+			game := games.First()
+			So(game, ShouldNotBeNil)
 			So(game.ID, ShouldNotBeBlank)
 			So(game.Names.International, ShouldNotBeBlank)
 			So(game.Links, ShouldNotBeEmpty)
@@ -78,12 +78,13 @@ func TestGames(t *testing.T) {
 		Convey("limited to just a few", func() {
 			games, err := Games(nil, nil, &Cursor{0, 3}, NoEmbeds)
 			So(err, ShouldBeNil)
-			So(games.Data, ShouldHaveLength, 3)
+			So(len(games.Data), ShouldEqual, 3)
 			So(games.Pagination.Offset, ShouldEqual, 0)
 			So(games.Pagination.Max, ShouldEqual, 3)
 			So(games.Pagination.Links, ShouldNotBeEmpty)
 
-			game := games.Data[0]
+			game := games.First()
+			So(game, ShouldNotBeNil)
 			So(game.ID, ShouldNotBeBlank)
 			So(game.Names.International, ShouldNotBeBlank)
 			So(game.Links, ShouldNotBeEmpty)
@@ -96,31 +97,15 @@ func TestGames(t *testing.T) {
 			So(games.Pagination.Offset, ShouldEqual, 0)
 			So(games.Pagination.Max, ShouldEqual, 1)
 
-			games, err = games.NextPage()
-			So(err, ShouldBeNil)
-			So(games.Data, ShouldHaveLength, 1)
-			So(games.Pagination.Offset, ShouldEqual, 1)
-			So(games.Pagination.Max, ShouldEqual, 1)
+			num := 0
 
-			games, err = games.NextPage()
-			So(err, ShouldBeNil)
-			So(games.Data, ShouldHaveLength, 1)
-			So(games.Pagination.Offset, ShouldEqual, 2)
-			So(games.Pagination.Max, ShouldEqual, 1)
+			// read a few pages, 7 is arbitrary
+			games.Walk(func(g *Game) bool {
+				So(g.ID, ShouldNotBeBlank)
 
-			games, err = games.PrevPage()
-			So(err, ShouldBeNil)
-			So(games.Data, ShouldHaveLength, 1)
-			So(games.Pagination.Offset, ShouldEqual, 1)
-			So(games.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			games, err := Games(nil, nil, nil, NoEmbeds)
-
-			games, err = games.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(games, ShouldNotBeNil)
+				num++
+				return num < 7
+			})
 		})
 	})
 
@@ -162,9 +147,9 @@ func TestGames(t *testing.T) {
 
 				platforms, err := game.Platforms()
 				So(err, ShouldBeNil)
-				So(platforms, ShouldHaveLength, 2)
-				So(platforms[0].ID, ShouldEqual, "1rjz039w")
-				So(platforms[1].ID, ShouldEqual, "4nv59gjk")
+				So(platforms.Data, ShouldHaveLength, 2)
+				So(platforms.Data[0].ID, ShouldEqual, "1rjz039w")
+				So(platforms.Data[1].ID, ShouldEqual, "4nv59gjk")
 			})
 
 			Convey("Structs with embedding", func() {
@@ -173,9 +158,9 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				platforms, err := game.Platforms()
 				So(err, ShouldBeNil)
-				So(platforms, ShouldHaveLength, 2)
-				So(platforms[0].ID, ShouldEqual, "1rjz039w")
-				So(platforms[1].ID, ShouldEqual, "4nv59gjk")
+				So(platforms.Data, ShouldHaveLength, 2)
+				So(platforms.Data[0].ID, ShouldEqual, "1rjz039w")
+				So(platforms.Data[1].ID, ShouldEqual, "4nv59gjk")
 				So(requestCount, ShouldEqual, before)
 			})
 		})
@@ -212,11 +197,11 @@ func TestGames(t *testing.T) {
 
 				regions, err := game.Regions()
 				So(err, ShouldBeNil)
-				So(regions, ShouldHaveLength, 4)
-				So(regions[0].ID, ShouldEqual, "pr184lqn")
-				So(regions[1].ID, ShouldEqual, "e6lxy1dz")
-				So(regions[2].ID, ShouldEqual, "o316x197")
-				So(regions[3].ID, ShouldEqual, "p2g50lnk")
+				So(regions.Data, ShouldHaveLength, 4)
+				So(regions.Data[0].ID, ShouldEqual, "pr184lqn")
+				So(regions.Data[1].ID, ShouldEqual, "e6lxy1dz")
+				So(regions.Data[2].ID, ShouldEqual, "o316x197")
+				So(regions.Data[3].ID, ShouldEqual, "p2g50lnk")
 			})
 
 			Convey("Structs with embedding", func() {
@@ -225,11 +210,11 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				regions, err := game.Regions()
 				So(err, ShouldBeNil)
-				So(regions, ShouldHaveLength, 4)
-				So(regions[0].ID, ShouldEqual, "pr184lqn")
-				So(regions[1].ID, ShouldEqual, "e6lxy1dz")
-				So(regions[2].ID, ShouldEqual, "o316x197")
-				So(regions[3].ID, ShouldEqual, "p2g50lnk")
+				So(regions.Data, ShouldHaveLength, 4)
+				So(regions.Data[0].ID, ShouldEqual, "pr184lqn")
+				So(regions.Data[1].ID, ShouldEqual, "e6lxy1dz")
+				So(regions.Data[2].ID, ShouldEqual, "o316x197")
+				So(regions.Data[3].ID, ShouldEqual, "p2g50lnk")
 				So(requestCount, ShouldEqual, before)
 			})
 		})
@@ -240,9 +225,9 @@ func TestGames(t *testing.T) {
 
 				categories, err := game.Categories(nil, nil, NoEmbeds)
 				So(err, ShouldBeNil)
-				So(categories, ShouldHaveLength, 22)
-				So(categories[0].ID, ShouldEqual, "n2y3r8do")
-				So(categories[1].ID, ShouldEqual, "7kjqlxd3")
+				So(categories.Data, ShouldHaveLength, 22)
+				So(categories.Data[0].ID, ShouldEqual, "n2y3r8do")
+				So(categories.Data[1].ID, ShouldEqual, "7kjqlxd3")
 			})
 
 			Convey("Structs with embedding", func() {
@@ -251,9 +236,9 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				categories, err := game.Categories(nil, nil, NoEmbeds)
 				So(err, ShouldBeNil)
-				So(categories, ShouldHaveLength, 22)
-				So(categories[0].ID, ShouldEqual, "n2y3r8do")
-				So(categories[1].ID, ShouldEqual, "7kjqlxd3")
+				So(categories.Data, ShouldHaveLength, 22)
+				So(categories.Data[0].ID, ShouldEqual, "n2y3r8do")
+				So(categories.Data[1].ID, ShouldEqual, "7kjqlxd3")
 				So(requestCount, ShouldEqual, before)
 			})
 		})
@@ -264,9 +249,9 @@ func TestGames(t *testing.T) {
 
 				levels, err := game.Levels(nil, NoEmbeds)
 				So(err, ShouldBeNil)
-				So(levels, ShouldHaveLength, 14)
-				So(levels[0].ID, ShouldEqual, "xd4e80wm")
-				So(levels[1].ID, ShouldEqual, "nwlzepdv")
+				So(levels.Data, ShouldHaveLength, 14)
+				So(levels.Data[0].ID, ShouldEqual, "xd4e80wm")
+				So(levels.Data[1].ID, ShouldEqual, "nwlzepdv")
 			})
 
 			Convey("Structs with embedding", func() {
@@ -275,9 +260,9 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				levels, err := game.Levels(nil, NoEmbeds)
 				So(err, ShouldBeNil)
-				So(levels, ShouldHaveLength, 14)
-				So(levels[0].ID, ShouldEqual, "xd4e80wm")
-				So(levels[1].ID, ShouldEqual, "nwlzepdv")
+				So(levels.Data, ShouldHaveLength, 14)
+				So(levels.Data[0].ID, ShouldEqual, "xd4e80wm")
+				So(levels.Data[1].ID, ShouldEqual, "nwlzepdv")
 				So(requestCount, ShouldEqual, before)
 			})
 		})
@@ -288,9 +273,9 @@ func TestGames(t *testing.T) {
 
 				variables, err := game.Variables(nil)
 				So(err, ShouldBeNil)
-				So(variables, ShouldHaveLength, 2)
-				So(variables[0].ID, ShouldEqual, "38dz6zn0")
-				So(variables[1].ID, ShouldEqual, "r8r157ne")
+				So(variables.Data, ShouldHaveLength, 2)
+				So(variables.Data[0].ID, ShouldEqual, "38dz6zn0")
+				So(variables.Data[1].ID, ShouldEqual, "r8r157ne")
 			})
 
 			Convey("Structs with embedding", func() {
@@ -299,9 +284,9 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				variables, err := game.Variables(nil)
 				So(err, ShouldBeNil)
-				So(variables, ShouldHaveLength, 2)
-				So(variables[0].ID, ShouldEqual, "38dz6zn0")
-				So(variables[1].ID, ShouldEqual, "r8r157ne")
+				So(variables.Data, ShouldHaveLength, 2)
+				So(variables.Data[0].ID, ShouldEqual, "38dz6zn0")
+				So(variables.Data[1].ID, ShouldEqual, "r8r157ne")
 				So(requestCount, ShouldEqual, before)
 			})
 		})
@@ -342,10 +327,10 @@ func TestGames(t *testing.T) {
 
 				mods, err := game.Moderators()
 				So(err, ShouldBeNil)
-				So(mods, ShouldHaveLength, 3)
-				So(mods[0].ID, ShouldBeIn, modIDs)
-				So(mods[1].ID, ShouldBeIn, modIDs)
-				So(mods[2].ID, ShouldBeIn, modIDs)
+				So(mods.Data, ShouldHaveLength, 3)
+				So(mods.Data[0].ID, ShouldBeIn, modIDs)
+				So(mods.Data[1].ID, ShouldBeIn, modIDs)
+				So(mods.Data[2].ID, ShouldBeIn, modIDs)
 			})
 
 			Convey("Users with embedding", func() {
@@ -354,10 +339,10 @@ func TestGames(t *testing.T) {
 				before := requestCount
 				mods, err := game.Moderators()
 				So(err, ShouldBeNil)
-				So(mods, ShouldHaveLength, 3)
-				So(mods[0].ID, ShouldBeIn, modIDs)
-				So(mods[1].ID, ShouldBeIn, modIDs)
-				So(mods[2].ID, ShouldBeIn, modIDs)
+				So(mods.Data, ShouldHaveLength, 3)
+				So(mods.Data[0].ID, ShouldBeIn, modIDs)
+				So(mods.Data[1].ID, ShouldBeIn, modIDs)
+				So(mods.Data[2].ID, ShouldBeIn, modIDs)
 				So(requestCount, ShouldEqual, before)
 			})
 		})

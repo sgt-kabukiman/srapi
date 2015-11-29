@@ -29,77 +29,19 @@ func TestRegions(t *testing.T) {
 	})
 
 	Convey("Fetching multiple regions", t, func() {
-		Convey("starting from the beginning", func() {
-			regions, err := Regions(nil, nil)
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldNotBeEmpty)
-			So(regions.Pagination.Offset, ShouldEqual, 0)
+		regions, err := Regions(nil, &Cursor{0, 1})
+		So(err, ShouldBeNil)
+		So(regions.Pagination.Offset, ShouldEqual, 0)
+		So(regions.Pagination.Max, ShouldEqual, 1)
 
-			region := regions.Data[0]
-			So(region.ID, ShouldNotBeBlank)
-			So(region.Name, ShouldNotBeBlank)
-			So(region.Links, ShouldNotBeEmpty)
-		})
+		num := 0
 
-		Convey("skipping the first few", func() {
-			regions, err := Regions(nil, &Cursor{2, 0})
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldNotBeEmpty)
-			So(regions.Pagination.Offset, ShouldEqual, 2)
-			So(regions.Pagination.Links, ShouldNotBeEmpty)
+		// read a few pages, 7 is arbitrary
+		regions.Walk(func(r *Region) bool {
+			So(r.ID, ShouldNotBeBlank)
 
-			region := regions.Data[0]
-			So(region.ID, ShouldNotBeBlank)
-			So(region.Name, ShouldNotBeBlank)
-			So(region.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("limited to just a few", func() {
-			regions, err := Regions(nil, &Cursor{0, 3})
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldHaveLength, 3)
-			So(regions.Pagination.Offset, ShouldEqual, 0)
-			So(regions.Pagination.Max, ShouldEqual, 3)
-			So(regions.Pagination.Links, ShouldNotBeEmpty)
-
-			region := regions.Data[0]
-			So(region.ID, ShouldNotBeBlank)
-			So(region.Name, ShouldNotBeBlank)
-			So(region.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("paging through the regions", func() {
-			regions, err := Regions(nil, &Cursor{0, 1})
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldHaveLength, 1)
-			So(regions.Pagination.Offset, ShouldEqual, 0)
-			So(regions.Pagination.Max, ShouldEqual, 1)
-
-			regions, err = regions.NextPage()
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldHaveLength, 1)
-			So(regions.Pagination.Offset, ShouldEqual, 1)
-			So(regions.Pagination.Max, ShouldEqual, 1)
-
-			regions, err = regions.NextPage()
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldHaveLength, 1)
-			So(regions.Pagination.Offset, ShouldEqual, 2)
-			So(regions.Pagination.Max, ShouldEqual, 1)
-
-			regions, err = regions.PrevPage()
-			So(err, ShouldBeNil)
-			So(regions.Data, ShouldHaveLength, 1)
-			So(regions.Pagination.Offset, ShouldEqual, 1)
-			So(regions.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			regions, err := Regions(nil, nil)
-
-			regions, err = regions.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(regions, ShouldNotBeNil)
+			num++
+			return num < 7
 		})
 	})
 

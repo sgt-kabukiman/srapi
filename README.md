@@ -40,7 +40,10 @@ func main() {
 		panic(err) // err is an srapi.*ApiError struct, containing more information
 	}
 
-	fmt.Printf("regions = %+v\n", regions)
+	regions.Walk(func(r *Region) bool {
+		fmt.Printf("Region = %s\n", r.Name)
+		return true // false to skip walking
+	})
 }
 ```
 

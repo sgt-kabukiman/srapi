@@ -60,8 +60,8 @@ func TestCategories(t *testing.T) {
 		variables, err := category.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
-		So(variables, ShouldHaveLength, 1)
-		So(variables[0].Name, ShouldEqual, "Character")
+		So(variables.Size(false), ShouldEqual, 1)
+		So(variables.First().Name, ShouldEqual, "Character")
 	})
 
 	Convey("Get a category's variables via embedding", t, func() {
@@ -71,8 +71,8 @@ func TestCategories(t *testing.T) {
 		variables, err := category.Variables(nil)
 		So(err, ShouldBeNil)
 		So(variables, ShouldNotBeNil)
-		So(variables, ShouldHaveLength, 1)
-		So(variables[0].Name, ShouldEqual, "Character")
+		So(variables.Size(false), ShouldEqual, 1)
+		So(variables.First().Name, ShouldEqual, "Character")
 		So(requestCount, ShouldEqual, before)
 	})
 

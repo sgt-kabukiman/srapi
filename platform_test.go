@@ -28,77 +28,19 @@ func TestPlatforms(t *testing.T) {
 	})
 
 	Convey("Fetching multiple platforms", t, func() {
-		Convey("starting from the beginning", func() {
-			platforms, err := Platforms(nil, nil)
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldNotBeEmpty)
-			So(platforms.Pagination.Offset, ShouldEqual, 0)
+		platforms, err := Platforms(nil, &Cursor{0, 1})
+		So(err, ShouldBeNil)
+		So(platforms.Pagination.Offset, ShouldEqual, 0)
+		So(platforms.Pagination.Max, ShouldEqual, 1)
 
-			platform := platforms.Data[0]
-			So(platform.ID, ShouldNotBeBlank)
-			So(platform.Name, ShouldNotBeBlank)
-			So(platform.Links, ShouldNotBeEmpty)
-		})
+		num := 0
 
-		Convey("skipping the first few", func() {
-			platforms, err := Platforms(nil, &Cursor{2, 0})
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldNotBeEmpty)
-			So(platforms.Pagination.Offset, ShouldEqual, 2)
-			So(platforms.Pagination.Links, ShouldNotBeEmpty)
+		// read a few pages, 7 is arbitrary
+		platforms.Walk(func(p *Platform) bool {
+			So(p.ID, ShouldNotBeBlank)
 
-			platform := platforms.Data[0]
-			So(platform.ID, ShouldNotBeBlank)
-			So(platform.Name, ShouldNotBeBlank)
-			So(platform.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("limited to just a few", func() {
-			platforms, err := Platforms(nil, &Cursor{0, 3})
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldHaveLength, 3)
-			So(platforms.Pagination.Offset, ShouldEqual, 0)
-			So(platforms.Pagination.Max, ShouldEqual, 3)
-			So(platforms.Pagination.Links, ShouldNotBeEmpty)
-
-			platform := platforms.Data[0]
-			So(platform.ID, ShouldNotBeBlank)
-			So(platform.Name, ShouldNotBeBlank)
-			So(platform.Links, ShouldNotBeEmpty)
-		})
-
-		Convey("paging through the platforms", func() {
-			platforms, err := Platforms(nil, &Cursor{0, 1})
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldHaveLength, 1)
-			So(platforms.Pagination.Offset, ShouldEqual, 0)
-			So(platforms.Pagination.Max, ShouldEqual, 1)
-
-			platforms, err = platforms.NextPage()
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldHaveLength, 1)
-			So(platforms.Pagination.Offset, ShouldEqual, 1)
-			So(platforms.Pagination.Max, ShouldEqual, 1)
-
-			platforms, err = platforms.NextPage()
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldHaveLength, 1)
-			So(platforms.Pagination.Offset, ShouldEqual, 2)
-			So(platforms.Pagination.Max, ShouldEqual, 1)
-
-			platforms, err = platforms.PrevPage()
-			So(err, ShouldBeNil)
-			So(platforms.Data, ShouldHaveLength, 1)
-			So(platforms.Pagination.Offset, ShouldEqual, 1)
-			So(platforms.Pagination.Max, ShouldEqual, 1)
-		})
-
-		Convey("the prev page from the beginning should yield an error", func() {
-			platforms, err := Platforms(nil, nil)
-
-			platforms, err = platforms.PrevPage()
-			So(err, ShouldNotBeNil)
-			So(platforms, ShouldNotBeNil)
+			num++
+			return num < 7
 		})
 	})
 

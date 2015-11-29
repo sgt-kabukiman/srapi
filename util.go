@@ -48,7 +48,7 @@ func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 			tmp := UserCollection{}
 
 			if recast(data, &tmp) == nil {
-				for _, user := range tmp.users() {
+				for _, user := range tmp.Users() {
 					result[user.ID] = UnknownModLevel
 				}
 			}
@@ -68,63 +68,28 @@ func recastToModeratorMap(data interface{}) map[string]GameModLevel {
 // recastToModerators returns a list of users that are moderators of the series.
 // If moderators were not embedded, they will be fetched individually from the
 // network.
-func recastToModerators(data interface{}) ([]*User, *Error) {
-	var result []*User
+func recastToModerators(data interface{}) (*UserCollection, *Error) {
+	collection := &UserCollection{}
 
 	// both embedded and non-embedded moderators look at least like this
 	// and we cannot type assert to map[string]string directly.
 	assertedMap, okay := data.(map[string]interface{})
 	if okay {
 		if isResponseLike(assertedMap) {
-			return toUserCollection(data).users(), nil
+			return toUserCollection(data), nil
 		}
 
 		for userID := range assertedMap {
 			user, err := UserByID(userID)
 			if err != nil {
-				return result, err
+				return collection, err
 			}
 
-			result = append(result, user)
+			collection.Data = append(collection.Data, *user)
 		}
 	}
 
-	return result, nil
-}
-
-// recastToPlayerList casts a player blob into a list of players.
-func recastToPlayerList(data interface{}) []*Player {
-	var result []*Player
-
-	tmp := playerCollection{}
-	if recast(data, &tmp) == nil {
-		// each element in tmp.Data has a rel that tells us whether we have a
-		// user or a guest
-		for _, playerProps := range tmp.Data {
-			rel, exists := playerProps["rel"]
-			if exists {
-				player := Player{}
-
-				switch rel {
-				case "user":
-					if user := toUser(playerProps, false); user != nil {
-						player.User = user
-					}
-
-				case "guest":
-					if guest := toGuest(playerProps, false); guest != nil {
-						player.Guest = guest
-					}
-				}
-
-				if player.User != nil || player.Guest != nil {
-					result = append(result, &player)
-				}
-			}
-		}
-	}
-
-	return result
+	return collection, nil
 }
 
 func isResponseLike(data map[string]interface{}) bool {

@@ -176,34 +176,27 @@ func (lb *Leaderboard) Level(embeds string) (*Level, *Error) {
 }
 
 // Platforms returns a list of all platforms that are used in the leaderboard.
-// If they have not been embedded, an empty slice is returned.
-func (lb *Leaderboard) Platforms() []*Platform {
-	return toPlatformCollection(lb.PlatformsData).platforms()
+// If they have not been embedded, an empty collection is returned.
+func (lb *Leaderboard) Platforms() *PlatformCollection {
+	return toPlatformCollection(lb.PlatformsData)
 }
 
 // Regions returns a list of all regions that are used in the leaderboard.
-// If they have not been embedded, an empty slice is returned.
-func (lb *Leaderboard) Regions() []*Region {
-	return toRegionCollection(lb.RegionsData).regions()
+// If they have not been embedded, an empty collection is returned.
+func (lb *Leaderboard) Regions() *RegionCollection {
+	return toRegionCollection(lb.RegionsData)
+}
+
+// Variables returns a list of all variables that are present in the leaderboard.
+// If they have not been embedded, an empty collection is returned.
+func (lb *Leaderboard) Variables() *VariableCollection {
+	return toVariableCollection(lb.VariablesData)
 }
 
 // Players returns a list of all players that are present in the leaderboard.
 // If they have not been embedded, an empty slice is returned.
-func (lb *Leaderboard) Players() []*Player {
-	var result []*Player
-
-	// players have not been embedded
-	if lb.PlayersData == nil {
-		return result
-	}
-
-	return recastToPlayerList(lb.PlayersData)
-}
-
-// Variables returns a list of all variables that are present in the leaderboard.
-// If they have not been embedded, an empty slice is returned.
-func (lb *Leaderboard) Variables() []*Variable {
-	return toVariableCollection(lb.VariablesData).variables()
+func (lb *Leaderboard) Players() *PlayerCollection {
+	return toPlayerCollection(lb.PlayersData)
 }
 
 // for the 'hasLinks' interface
@@ -310,53 +303,6 @@ func (lf *LeaderboardFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// LeaderboardCollection is one page of a paginated list of leaderboards. It
-// consists of the leaderboards as well as some pagination information (like
-// links to the next or previous page).
-type LeaderboardCollection struct {
-	Data       []Leaderboard
-	Pagination Pagination
-}
-
-// leaderboards returns a list of pointers to the leaderboards; used for cases
-// where there is no pagination and the caller wants to return a flat slice of
-// leaderboards instead of a collection (which would be misleading, as
-// collections imply pagination).
-func (lc *LeaderboardCollection) leaderboards() []*Leaderboard {
-	var result []*Leaderboard
-
-	for idx := range lc.Data {
-		result = append(result, &lc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// leaderboards. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (lc *LeaderboardCollection) NextPage() (*LeaderboardCollection, *Error) {
-	return lc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// leaderboards. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (lc *LeaderboardCollection) PrevPage() (*LeaderboardCollection, *Error) {
-	return lc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (lc *LeaderboardCollection) fetchLink(name string) (*LeaderboardCollection, *Error) {
-	next := firstLink(&lc.Pagination, name)
-	if next == nil {
-		return &LeaderboardCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchLeaderboardsLink(next, nil, nil, "")
-}
-
 // fetchLeaderboard fetches a single leaderboard from the network. If the request
 // failed, the returned leaderboard is nil. Otherwise, the error is nil.
 func fetchLeaderboard(request request) (*Leaderboard, *Error) {
@@ -385,13 +331,9 @@ func fetchLeaderboardLink(link requestable, options *LeaderboardOptions, embeds 
 // returns a collection, even when an error is returned.
 func fetchLeaderboards(request request) (*LeaderboardCollection, *Error) {
 	result := &LeaderboardCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 // fetchLeaderboardsLink tries to fetch a given link and interpret the response as

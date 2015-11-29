@@ -100,7 +100,7 @@ func (c *Category) Game(embeds string) (*Game, *Error) {
 // Variables extracts the embedded variables, if possible, otherwise it will
 // fetch them by doing one additional request. sort is only relevant when the
 // variables are not already embedded.
-func (c *Category) Variables(sort *Sorting) ([]*Variable, *Error) {
+func (c *Category) Variables(sort *Sorting) (*VariableCollection, *Error) {
 	var collection *VariableCollection
 	var err *Error
 
@@ -113,7 +113,7 @@ func (c *Category) Variables(sort *Sorting) ([]*Variable, *Error) {
 		collection = toVariableCollection(c.VariablesData)
 	}
 
-	return collection.variables(), nil
+	return collection, nil
 }
 
 // PrimaryLeaderboard fetches the primary leaderboard, if any, for the category.
@@ -157,53 +157,6 @@ func (cf *CategoryFilter) applyToURL(u *url.URL) {
 	u.RawQuery = values.Encode()
 }
 
-// CategoryCollection is one page of the entire category list. It consists of the
-// categories as well as some pagination information (like links to the next or
-// previous page).
-type CategoryCollection struct {
-	Data       []Category
-	Pagination Pagination
-}
-
-// categories returns a list of pointers to the categories; used for cases where
-// there is no pagination and the caller wants to return a flat slice of categories
-// instead of a collection (which would be misleading, as collections imply
-// pagination).
-func (cc *CategoryCollection) categories() []*Category {
-	var result []*Category
-
-	for idx := range cc.Data {
-		result = append(result, &cc.Data[idx])
-	}
-
-	return result
-}
-
-// NextPage tries to follow the "next" link and retrieve the next page of
-// categories. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (cc *CategoryCollection) NextPage() (*CategoryCollection, *Error) {
-	return cc.fetchLink("next")
-}
-
-// PrevPage tries to follow the "prev" link and retrieve the previous page of
-// categories. If there is no such link, an empty collection and an error
-// is returned. Otherwise, the error is nil.
-func (cc *CategoryCollection) PrevPage() (*CategoryCollection, *Error) {
-	return cc.fetchLink("prev")
-}
-
-// fetchLink tries to fetch a link, if it exists. If there is no such link, an
-// empty collection and an error is returned. Otherwise, the error is nil.
-func (cc *CategoryCollection) fetchLink(name string) (*CategoryCollection, *Error) {
-	next := firstLink(&cc.Pagination, name)
-	if next == nil {
-		return &CategoryCollection{}, &Error{"", "", ErrorNoSuchLink, "Could not find a '" + name + "' link."}
-	}
-
-	return fetchCategoriesLink(next, nil, nil, "")
-}
-
 // fetchCategory fetches a single category from the network. If the request failed,
 // the returned category is nil. Otherwise, the error is nil.
 func fetchCategory(request request) (*Category, *Error) {
@@ -232,13 +185,9 @@ func fetchCategoryLink(link requestable, embeds string) (*Category, *Error) {
 // returns a collection, even when an error is returned.
 func fetchCategories(request request) (*CategoryCollection, *Error) {
 	result := &CategoryCollection{}
-
 	err := httpClient.do(request, result)
-	if err != nil {
-		return result, err
-	}
 
-	return result, nil
+	return result, err
 }
 
 // fetchCategoriesLink tries to fetch a given link and interpret the response as
