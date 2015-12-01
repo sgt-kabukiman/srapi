@@ -47,9 +47,9 @@ func (c *GameCollection) Games() []*Game {
 func (c *GameCollection) Walk(f GameWalkerFunc) {
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if !f(item) {
-			break
+			it.Stop()
 		}
 	}
 }
@@ -93,7 +93,7 @@ func (c *GameCollection) Get(idx int) *Game {
 	cur := 0
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if cur == idx {
 			return item
 		}
@@ -117,7 +117,7 @@ func (c *GameCollection) First() *Game {
 func (c *GameCollection) ScanForID(id string) *Game {
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if item.ID == id {
 			return item
 		}
@@ -129,76 +129,98 @@ func (c *GameCollection) ScanForID(id string) *Game {
 // Iterator returns an interator for a GameCollection. There can be many
 // independent iterators starting from the same collection.
 func (c *GameCollection) Iterator() GameIterator {
-	return GameIterator{
-		origin:    c,
-		cursor:    0,
-		limit:     c.limit,
-		remaining: c.limit,
+	it := GameIterator{
+		output:     make(chan *Game),
+		killSwitch: make(chan struct{}),
+		origin:     c,
+		limit:      c.limit,
 	}
+
+	go it.work()
+
+	return it
 }
 
 // GameIterator represents a list of games.
 type GameIterator struct {
-	origin    *GameCollection
-	page      *GameCollection
-	cursor    int
-	limit     int
-	remaining int
+	output     chan *Game
+	killSwitch chan struct{}
+	origin     *GameCollection
+	limit      int
 }
 
-// Start returns the iterator to the start of the original collection page
-// and returns the first element if it exists.
-func (i *GameIterator) Start() *Game {
-	i.cursor = 0
-	i.page = i.origin
-	i.remaining = i.limit
-
-	return i.fetch()
+// Output returns a channel that can be used to read all games
+// from the iterator.
+func (i *GameIterator) Output() <-chan *Game {
+	return i.output
 }
 
-// Next advances to the next item. If there is no further item, nil is
-// returned. All further calls to Next would return nil as well.
-func (i *GameIterator) Next() *Game {
-	i.cursor++
+// Stop interrupts the iterator and cancels all further pending action. After
+// calling this, the iterator returns no more games and becomes
+// unusable.
+func (i *GameIterator) Stop() {
+	close(i.killSwitch)
 
-	return i.fetch()
+	// drain the remaining element(s)
+	for _ = range i.output {
+	}
 }
 
-// fetch tries to return the current item. If it doesn't exist, it attempts
-// to fetch the next page and return its first item.
-func (i *GameIterator) fetch() *Game {
-	// handle item limit
-	if i.limit > 0 {
-		if i.remaining <= 0 {
-			return nil
+// work is the goroutine that reads items from the current page and
+// fetches new pages until all pages are fetched or the iteration is stopped.
+func (i *GameIterator) work() {
+	page := i.origin
+	first := true
+	remaining := i.limit
+
+	defer close(i.output)
+
+	for {
+		select {
+		case <-i.killSwitch:
+			return
+
+		default:
+			// if this is not the first iteration, fetch the next page to work on
+			if !first {
+				// is there another one?
+				nextLink := firstLink(&page.Pagination, "next")
+				if nextLink == nil {
+					return
+				}
+
+				// fetch the next page
+				p, err := fetchGames(nextLink.request(nil, nil, NoEmbeds))
+				if err != nil {
+					return
+				}
+
+				// is this page empty?
+				if len(p.Data) == 0 {
+					return
+				}
+
+				// use this page from now on
+				page = p
+			}
+
+			for idx := 0; idx < len(page.Data); idx++ {
+				select {
+				case <-i.killSwitch:
+					return
+
+				default:
+					i.output <- &page.Data[idx]
+					remaining--
+				}
+
+				// stop we we exhausted all allowed elements
+				if i.limit > 0 && remaining <= 0 {
+					return
+				}
+			}
+
+			first = false
 		}
-
-		i.remaining--
 	}
-
-	// easy, just get the next item on the current page
-	if i.cursor < len(i.page.Data) {
-		return &i.page.Data[i.cursor]
-	}
-
-	// we reached the end of the current page; is there another one?
-	nextLink := firstLink(&i.page.Pagination, "next")
-	if nextLink == nil {
-		return nil
-	}
-
-	// fetch the next page
-	page, err := fetchGames(nextLink.request(nil, nil, NoEmbeds))
-	if err != nil {
-		return nil
-	}
-
-	i.page = page
-	i.cursor = 0
-
-	if i.cursor < len(i.page.Data) {
-		return &i.page.Data[i.cursor]
-	}
-
-	return nil
 }

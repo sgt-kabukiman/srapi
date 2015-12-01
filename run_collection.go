@@ -47,9 +47,9 @@ func (c *RunCollection) Runs() []*Run {
 func (c *RunCollection) Walk(f RunWalkerFunc) {
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if !f(item) {
-			break
+			it.Stop()
 		}
 	}
 }
@@ -93,7 +93,7 @@ func (c *RunCollection) Get(idx int) *Run {
 	cur := 0
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if cur == idx {
 			return item
 		}
@@ -117,7 +117,7 @@ func (c *RunCollection) First() *Run {
 func (c *RunCollection) ScanForID(id string) *Run {
 	it := c.Iterator()
 
-	for item := it.Start(); item != nil; item = it.Next() {
+	for item := range it.Output() {
 		if item.ID == id {
 			return item
 		}
@@ -129,76 +129,98 @@ func (c *RunCollection) ScanForID(id string) *Run {
 // Iterator returns an interator for a RunCollection. There can be many
 // independent iterators starting from the same collection.
 func (c *RunCollection) Iterator() RunIterator {
-	return RunIterator{
-		origin:    c,
-		cursor:    0,
-		limit:     c.limit,
-		remaining: c.limit,
+	it := RunIterator{
+		output:     make(chan *Run),
+		killSwitch: make(chan struct{}),
+		origin:     c,
+		limit:      c.limit,
 	}
+
+	go it.work()
+
+	return it
 }
 
 // RunIterator represents a list of runs.
 type RunIterator struct {
-	origin    *RunCollection
-	page      *RunCollection
-	cursor    int
-	limit     int
-	remaining int
+	output     chan *Run
+	killSwitch chan struct{}
+	origin     *RunCollection
+	limit      int
 }
 
-// Start returns the iterator to the start of the original collection page
-// and returns the first element if it exists.
-func (i *RunIterator) Start() *Run {
-	i.cursor = 0
-	i.page = i.origin
-	i.remaining = i.limit
-
-	return i.fetch()
+// Output returns a channel that can be used to read all runs
+// from the iterator.
+func (i *RunIterator) Output() <-chan *Run {
+	return i.output
 }
 
-// Next advances to the next item. If there is no further item, nil is
-// returned. All further calls to Next would return nil as well.
-func (i *RunIterator) Next() *Run {
-	i.cursor++
+// Stop interrupts the iterator and cancels all further pending action. After
+// calling this, the iterator returns no more runs and becomes
+// unusable.
+func (i *RunIterator) Stop() {
+	close(i.killSwitch)
 
-	return i.fetch()
+	// drain the remaining element(s)
+	for _ = range i.output {
+	}
 }
 
-// fetch tries to return the current item. If it doesn't exist, it attempts
-// to fetch the next page and return its first item.
-func (i *RunIterator) fetch() *Run {
-	// handle item limit
-	if i.limit > 0 {
-		if i.remaining <= 0 {
-			return nil
+// work is the goroutine that reads items from the current page and
+// fetches new pages until all pages are fetched or the iteration is stopped.
+func (i *RunIterator) work() {
+	page := i.origin
+	first := true
+	remaining := i.limit
+
+	defer close(i.output)
+
+	for {
+		select {
+		case <-i.killSwitch:
+			return
+
+		default:
+			// if this is not the first iteration, fetch the next page to work on
+			if !first {
+				// is there another one?
+				nextLink := firstLink(&page.Pagination, "next")
+				if nextLink == nil {
+					return
+				}
+
+				// fetch the next page
+				p, err := fetchRuns(nextLink.request(nil, nil, NoEmbeds))
+				if err != nil {
+					return
+				}
+
+				// is this page empty?
+				if len(p.Data) == 0 {
+					return
+				}
+
+				// use this page from now on
+				page = p
+			}
+
+			for idx := 0; idx < len(page.Data); idx++ {
+				select {
+				case <-i.killSwitch:
+					return
+
+				default:
+					i.output <- &page.Data[idx]
+					remaining--
+				}
+
+				// stop we we exhausted all allowed elements
+				if i.limit > 0 && remaining <= 0 {
+					return
+				}
+			}
+
+			first = false
 		}
-
-		i.remaining--
 	}
-
-	// easy, just get the next item on the current page
-	if i.cursor < len(i.page.Data) {
-		return &i.page.Data[i.cursor]
-	}
-
-	// we reached the end of the current page; is there another one?
-	nextLink := firstLink(&i.page.Pagination, "next")
-	if nextLink == nil {
-		return nil
-	}
-
-	// fetch the next page
-	page, err := fetchRuns(nextLink.request(nil, nil, NoEmbeds))
-	if err != nil {
-		return nil
-	}
-
-	i.page = page
-	i.cursor = 0
-
-	if i.cursor < len(i.page.Data) {
-		return &i.page.Data[i.cursor]
-	}
-
-	return nil
 }

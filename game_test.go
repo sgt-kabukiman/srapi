@@ -416,14 +416,16 @@ func TestGames(t *testing.T) {
 
 			iterator := games.Iterator()
 
-			for run := iterator.Start(); run != nil; run = iterator.Next() {
+			for run := range iterator.Output() {
 				So(run.ID, ShouldEqual, ids[idx])
 				idx++
 
 				if idx == 3 {
-					break
+					iterator.Stop()
 				}
 			}
+
+			So(idx, ShouldEqual, 3)
 		})
 
 		Convey("walk over the first few elements", func() {
