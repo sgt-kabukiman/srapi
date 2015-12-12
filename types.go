@@ -258,7 +258,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 // Format returns a human readable time in the form of "[[HH:]MM:]SS[.MS]".
 func (d *Duration) Format() string {
 	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % (3600)
+	minutes := int(d.Minutes()) % 60
 	seconds := int(d.Seconds()) % 60
 	milli := (d.Seconds() - float64(int(d.Seconds())))
 
