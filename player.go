@@ -2,6 +2,8 @@
 
 package srapi
 
+import "net/url"
+
 // Player is either a User or a Guest, i.e. only one of the two will ever be
 // non-nil.
 type Player struct {
@@ -18,6 +20,45 @@ func (p *Player) Name() string {
 	} else {
 		return "(neither guest nor user)"
 	}
+}
+
+// toLink returns a link pointing to this player.
+func (p *Player) toLink() PlayerLink {
+	var link PlayerLink
+
+	if p.User != nil {
+		link = PlayerLink{
+			Link: Link{
+				Relation: "user",
+				URI:      BaseURL + "/users/" + p.User.ID,
+			},
+			ID:   p.User.ID,
+			Name: "",
+		}
+
+		// try our best to use the provided link
+		l := firstLink(p.User, "self")
+		if l != nil {
+			link.URI = l.URI
+		}
+	} else {
+		link = PlayerLink{
+			Link: Link{
+				Relation: "guest",
+				URI:      BaseURL + "/guests/" + url.QueryEscape(p.Guest.Name),
+			},
+			ID:   "",
+			Name: p.Guest.Name,
+		}
+
+		// try our best to use the provided link
+		l := firstLink(p.Guest, "self")
+		if l != nil {
+			link.URI = l.URI
+		}
+	}
+
+	return link
 }
 
 // PlayerLink is a special link that points to either a user (then ID is given)

@@ -196,7 +196,7 @@ func (r *Run) Region() (*Region, *Error) {
 	return toRegion(r.RegionData, true), nil
 }
 
-// Players returns a list of all players that aparticipated in this run.
+// Players returns a list of all players that participated in this run.
 // If they have not been embedded, they are fetched individually from the
 // network, one request per player.
 func (r *Run) Players() (*PlayerCollection, *Error) {
@@ -221,6 +221,30 @@ func (r *Run) Players() (*PlayerCollection, *Error) {
 	// sub-resource due to embeds, aka "{data:....}"
 	case map[string]interface{}:
 		result = toPlayerCollection(r.PlayersData)
+	}
+
+	return result, nil
+}
+
+// PlayerLinks returns a list of all links to players that participated in this
+// run.
+func (r *Run) PlayerLinks() ([]PlayerLink, *Error) {
+	var result []PlayerLink
+
+	switch asserted := r.PlayersData.(type) {
+	// list of simple links to users/guests, e.g. players=[{rel:..,id:...}, {...}]
+	case []interface{}:
+		if recast(asserted, &result) != nil {
+			return result, &Error{"", "", ErrorBadJSON, "Invalid PlayersData. This should never happen."}
+		}
+
+	// sub-resource due to embeds, aka "{data:....}"
+	case map[string]interface{}:
+		tmp := toPlayerCollection(r.PlayersData)
+
+		for _, player := range tmp.Data {
+			result = append(result, player.toLink())
+		}
 	}
 
 	return result, nil
