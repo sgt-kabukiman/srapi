@@ -80,7 +80,7 @@ func (pl *PlayerLink) exists() bool {
 
 // request turns a link into a request
 func (pl *PlayerLink) request(filter filter, sort *Sorting, embeds string) request {
-	relURL := pl.URI[len(BaseURL):]
+	relURL := pl.URI[len(BaseURL)+1:]
 
 	return request{"GET", relURL, filter, sort, nil, embeds}
 }
