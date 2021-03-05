@@ -33,7 +33,7 @@ func (l *Link) exists() bool {
 
 // request turns a link into a GET request.
 func (l *Link) request(filter filter, sort *Sorting, embeds string) request {
-	relURL := l.URI[len(BaseURL):]
+	relURL := l.URI[len(BaseURL)+1:]
 
 	return request{"GET", relURL, filter, sort, nil, embeds}
 }
